@@ -11,6 +11,7 @@ Sistema web em React + Vite para transportadora controlar a fila de placas de mo
 - Filtros por placa, motorista, status, responsável e data.
 - Tela de finalizados e cancelados com filtro por data.
 - Relatório do dia com cards por status.
+- Auditoria visual de quem finalizou/cancelou para usuários autorizados.
 - Layout responsivo para computador e celular.
 
 ## Configuração do Supabase
@@ -33,6 +34,19 @@ VITE_SUPABASE_ANON_KEY=sb_publishable_sua_chave_aqui
 ```
 
 Use a `Publishable key`. Não use `Secret key` em projeto React.
+
+Nunca suba o arquivo `.env` para GitHub, Vercel ou ZIP público. Ele deve ficar apenas na máquina local. Para produção, configure as variáveis diretamente na Vercel.
+
+## Auditoria
+
+O sistema grava:
+
+- `finalizado_por`
+- `finalizado_em`
+- `cancelado_por`
+- `cancelado_em`
+
+Esses campos aparecem no front-end apenas para os e-mails autorizados no código. Essa é uma primeira versão de permissão visual; para segurança mais forte, o controle deve evoluir para perfis e políticas no banco de dados Supabase.
 
 7. Vá em `SQL Editor` no Supabase.
 8. Copie e execute o conteúdo de [`supabase/placas.sql`](supabase/placas.sql).
@@ -66,6 +80,8 @@ Redirect URLs: http://localhost:3000
 VITE_SUPABASE_URL=https://pmogcbqdqfvxewmjpkbh.supabase.co
 VITE_SUPABASE_ANON_KEY=sb_publishable_sua_chave_aqui
 ```
+
+Use somente a `Publishable key` do Supabase, que começa com `sb_publishable_`. Nunca use `Secret key` no React ou em variáveis públicas `VITE_`.
 
 4. Use estas configurações:
 

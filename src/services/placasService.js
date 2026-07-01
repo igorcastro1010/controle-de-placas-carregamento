@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { setKeepConnectedPreference, supabase } from './supabaseClient';
 
 export const STATUSES = [
   'Aguardando',
@@ -14,6 +14,11 @@ export const STATUSES = [
 ];
 
 export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
+
+export const AUDIT_VIEWERS = [
+  'gerencia.ce@grupodago.com.br',
+  'operacional3.ce@grupodago.com.br',
+];
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -35,13 +40,22 @@ export const formatTime = (value) => {
   return value.slice(0, 5);
 };
 
+export const formatDateTime = (value) => {
+  if (!value) return '-';
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value));
+};
+
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
   return data.session;
 }
 
-export async function signIn(email, password) {
+export async function signIn(email, password, { keepConnected = true } = {}) {
+  setKeepConnectedPreference(keepConnected);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
@@ -66,6 +80,7 @@ export async function fetchPlacas({ finalizados = false, filters = {} } = {}) {
   if (filters.status) query = query.eq('status', filters.status);
   if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
   if (filters.data) query = query.eq('data', filters.data);
+  if (filters.busca) query = query.or(`placa.ilike.%${filters.busca}%,motorista.ilike.%${filters.busca}%`);
 
   query = query.order(finalizados ? 'updated_at' : 'ordem', { ascending: !finalizados });
 
@@ -88,6 +103,20 @@ export async function fetchTodayReport() {
   );
 }
 
+export async function fetchReportDetails({ status, date, search } = {}) {
+  let query = supabase.from('placas').select('*');
+
+  if (status) query = query.eq('status', status);
+  if (date) query = query.eq('data', date);
+  if (search) query = query.or(`placa.ilike.%${search}%,motorista.ilike.%${search}%`);
+
+  query = query.order('data', { ascending: false }).order('ordem', { ascending: true });
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
 export async function createPlaca(payload, user) {
   const { data: lastItem, error: orderError } = await supabase
     .from('placas')
@@ -107,7 +136,7 @@ export async function createPlaca(payload, user) {
     hora: currentTime(),
     ordem: (lastItem?.ordem || 0) + 1,
     status: 'Aguardando',
-    responsavel: user.id,
+    responsavel_id: user.id,
     responsavel_email: user.email,
   };
 

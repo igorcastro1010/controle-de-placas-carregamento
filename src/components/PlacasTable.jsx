@@ -1,16 +1,6 @@
-import {
-  ArrowDown,
-  ArrowDownToLine,
-  ArrowUp,
-  Check,
-  Loader,
-  Megaphone,
-  Phone,
-  PhoneOff,
-  X,
-} from 'lucide-react';
+import PlateCard from './PlateCard';
 import StatusBadge from './StatusBadge';
-import { formatDate, formatTime } from '../services/placasService';
+import { formatDate, formatDateTime, formatTime } from '../services/placasService';
 
 const columns = [
   'ordem',
@@ -28,12 +18,59 @@ const columns = [
   'status',
   'responsavel',
   'ocorrido',
+  'auditoria',
   'ações',
 ];
 
-export default function PlacasTable({ items, onAction, onMove, finalizados = false, busyId }) {
+function ActiveQueueCards({ items, onAction, onMove, busyId, canViewAudit }) {
+  return (
+    <div className="queue-card-list">
+      {items.map((item, index) => (
+        <PlateCard
+          key={item.id}
+          item={item}
+          index={index}
+          visualOrder={index + 1}
+          itemsLength={items.length}
+          busyId={busyId}
+          canViewAudit={canViewAudit}
+          onAction={onAction}
+          onMove={onMove}
+        />
+      ))}
+    </div>
+  );
+}
+
+function AuditInfo({ item }) {
+  if (item.status === 'Finalizado') {
+    return (
+      <div className="audit-info">
+        <span>Finalizado por: {item.finalizado_por || '-'}</span>
+        <span>Finalizado em: {formatDateTime(item.finalizado_em)}</span>
+      </div>
+    );
+  }
+
+  if (item.status === 'Cancelado') {
+    return (
+      <div className="audit-info">
+        <span>Cancelado por: {item.cancelado_por || '-'}</span>
+        <span>Cancelado em: {formatDateTime(item.cancelado_em)}</span>
+      </div>
+    );
+  }
+
+  return <span className="muted">-</span>;
+}
+
+export default function PlacasTable({ items, onAction, onMove, finalizados = false, busyId, canViewAudit = false }) {
   if (!items.length) {
     return <div className="empty-state">Nenhum registro encontrado.</div>;
+  }
+
+  if (!finalizados) {
+    return <ActiveQueueCards items={items} onAction={onAction} onMove={onMove} busyId={busyId} canViewAudit={canViewAudit} />;
   }
 
   return (
@@ -41,13 +78,13 @@ export default function PlacasTable({ items, onAction, onMove, finalizados = fal
       <table>
         <thead>
           <tr>
-            {columns.map((column) => (
+            {columns.filter((column) => canViewAudit || column !== 'auditoria').map((column) => (
               <th key={column}>{column}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {items.map((item, index) => (
+          {items.map((item) => (
             <tr key={item.id}>
               <td data-label="ordem">
                 <strong>{item.ordem}</strong>
@@ -68,65 +105,17 @@ export default function PlacasTable({ items, onAction, onMove, finalizados = fal
               <td data-label="status">
                 <StatusBadge status={item.status} />
               </td>
-              <td data-label="responsavel">{item.responsavel_email || '-'}</td>
+              <td data-label="responsavel">{item.responsavel_email || item.responsavel || '-'}</td>
               <td data-label="ocorrido" className="notes-cell">
                 {item.ocorrido || '-'}
               </td>
+              {canViewAudit && (
+                <td data-label="auditoria" className="audit-cell">
+                  <AuditInfo item={item} />
+                </td>
+              )}
               <td data-label="ações">
-                {finalizados ? (
-                  <span className="muted">Encerrado</span>
-                ) : (
-                  <div className="actions-grid">
-                    <button title="1ª ligação" disabled={busyId === item.id} onClick={() => onAction(item, 'primeira')}>
-                      <Phone size={15} />
-                      1ª
-                    </button>
-                    <button title="2ª ligação" disabled={busyId === item.id} onClick={() => onAction(item, 'segunda')}>
-                      <Phone size={15} />
-                      2ª
-                    </button>
-                    <button title="3ª ligação" disabled={busyId === item.id} onClick={() => onAction(item, 'terceira')}>
-                      <Phone size={15} />
-                      3ª
-                    </button>
-                    <button title="Não atendeu" disabled={busyId === item.id} onClick={() => onAction(item, 'nao_atendeu')}>
-                      <PhoneOff size={15} />
-                      Não atendeu
-                    </button>
-                    <button title="Chamado" disabled={busyId === item.id} onClick={() => onAction(item, 'chamado')}>
-                      <Megaphone size={15} />
-                      Chamado
-                    </button>
-                    <button title="Chegou" disabled={busyId === item.id} onClick={() => onAction(item, 'chegou')}>
-                      <Check size={15} />
-                      Chegou
-                    </button>
-                    <button title="Carregando" disabled={busyId === item.id} onClick={() => onAction(item, 'carregando')}>
-                      <Loader size={15} />
-                      Carregando
-                    </button>
-                    <button title="Finalizar" disabled={busyId === item.id} onClick={() => onAction(item, 'finalizar')}>
-                      <Check size={15} />
-                      Finalizar
-                    </button>
-                    <button title="Cancelar" disabled={busyId === item.id} onClick={() => onAction(item, 'cancelar')}>
-                      <X size={15} />
-                      Cancelar
-                    </button>
-                    <button title="Subir" disabled={index === 0 || busyId === item.id} onClick={() => onMove(item, index, 'up')}>
-                      <ArrowUp size={15} />
-                      Subir
-                    </button>
-                    <button title="Descer" disabled={index === items.length - 1 || busyId === item.id} onClick={() => onMove(item, index, 'down')}>
-                      <ArrowDown size={15} />
-                      Descer
-                    </button>
-                    <button title="Mandar para o fim" disabled={busyId === item.id} onClick={() => onMove(item, index, 'end')}>
-                      <ArrowDownToLine size={15} />
-                      Fim
-                    </button>
-                  </div>
-                )}
+                <span className="muted">Encerrado</span>
               </td>
             </tr>
           ))}

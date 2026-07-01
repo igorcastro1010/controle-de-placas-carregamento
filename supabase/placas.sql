@@ -15,9 +15,13 @@ create table if not exists public.placas (
   segunda_ligacao time without time zone,
   terceira_ligacao time without time zone,
   status text not null default 'Aguardando',
-  responsavel uuid references auth.users(id) on delete set null,
+  responsavel_id uuid references auth.users(id) on delete set null,
   responsavel_email text,
   ocorrido text,
+  finalizado_por text,
+  finalizado_em timestamp with time zone,
+  cancelado_por text,
+  cancelado_em timestamp with time zone,
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now(),
   constraint placas_status_check check (
@@ -39,6 +43,7 @@ create table if not exists public.placas (
 create index if not exists placas_ordem_idx on public.placas (ordem);
 create index if not exists placas_status_idx on public.placas (status);
 create index if not exists placas_data_idx on public.placas (data);
+create index if not exists placas_responsavel_id_idx on public.placas (responsavel_id);
 create index if not exists placas_responsavel_email_idx on public.placas (responsavel_email);
 
 create or replace function public.set_placas_updated_at()
@@ -69,7 +74,7 @@ drop policy if exists "Usuarios autenticados podem inserir placas" on public.pla
 create policy "Usuarios autenticados podem inserir placas"
 on public.placas for insert
 to authenticated
-with check (auth.uid() = responsavel);
+with check (auth.uid() = responsavel_id);
 
 drop policy if exists "Usuarios autenticados podem atualizar placas" on public.placas;
 create policy "Usuarios autenticados podem atualizar placas"

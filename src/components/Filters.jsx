@@ -37,6 +37,12 @@ export default function Filters({ filters, onChange, onClear, finalizados = fals
           </label>
         </>
       )}
+      {finalizados && (
+        <label className="wide-filter">
+          Placa ou motorista
+          <input value={filters.busca || ''} onChange={(event) => setFilter('busca', event.target.value)} placeholder="Digite a placa ou nome" />
+        </label>
+      )}
       <label>
         Data
         <input type="date" value={filters.data || ''} onChange={(event) => setFilter('data', event.target.value)} />

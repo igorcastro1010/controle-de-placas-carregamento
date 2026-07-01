@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LogOut, RefreshCw } from 'lucide-react';
+import DetailsModal from '../components/DetailsModal';
 import Filters from '../components/Filters';
 import PlacaForm from '../components/PlacaForm';
 import PlacasTable from '../components/PlacasTable';
 import ReportCards from '../components/ReportCards';
 import {
+  AUDIT_VIEWERS,
   createPlaca,
   currentTime,
   fetchPlacas,
+  fetchReportDetails,
   fetchTodayReport,
   moveToEnd,
   signOut,
@@ -24,18 +27,30 @@ const emptyFilters = {
   data: '',
 };
 
+const emptyFinishedFilters = {
+  data: todayISO(),
+  busca: '',
+};
+
 export default function Dashboard({ user, onLogout }) {
+  const canViewAudit = AUDIT_VIEWERS.includes(user.email?.toLowerCase());
   const [activeTab, setActiveTab] = useState('fila');
   const [items, setItems] = useState([]);
   const [finishedItems, setFinishedItems] = useState([]);
   const [report, setReport] = useState({});
   const [filters, setFilters] = useState(emptyFilters);
-  const [finishedFilters, setFinishedFilters] = useState({ data: todayISO() });
+  const [finishedFilters, setFinishedFilters] = useState(emptyFinishedFilters);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [selectedReportCard, setSelectedReportCard] = useState(null);
+  const [detailsDate, setDetailsDate] = useState('');
+  const [detailsSearch, setDetailsSearch] = useState('');
+  const [detailsItems, setDetailsItems] = useState([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -60,9 +75,48 @@ export default function Dashboard({ user, onLogout }) {
     loadData();
   }, [loadData]);
 
+  const loadReportDetails = useCallback(async () => {
+    if (!selectedReportCard) return;
+
+    setDetailsLoading(true);
+    setDetailsError('');
+    try {
+      const data = await fetchReportDetails({
+        status: selectedReportCard.status,
+        date: detailsDate,
+        search: detailsSearch,
+      });
+      setDetailsItems(data);
+    } catch (err) {
+      setDetailsError(err.message || 'Não foi possível carregar os detalhes.');
+    } finally {
+      setDetailsLoading(false);
+    }
+  }, [detailsDate, detailsSearch, selectedReportCard]);
+
+  useEffect(() => {
+    loadReportDetails();
+  }, [loadReportDetails]);
+
   const showSuccess = (text) => {
     setMessage(text);
     setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleSelectReportCard = (card) => {
+    setSelectedReportCard(card);
+    setDetailsDate(card.defaultToday ? todayISO() : '');
+    setDetailsSearch('');
+    setDetailsItems([]);
+    setDetailsError('');
+  };
+
+  const handleCloseReportDetails = () => {
+    setSelectedReportCard(null);
+    setDetailsDate('');
+    setDetailsSearch('');
+    setDetailsItems([]);
+    setDetailsError('');
   };
 
   const handleCreate = async (payload) => {
@@ -91,8 +145,8 @@ export default function Dashboard({ user, onLogout }) {
         chamado: { status: 'Chamado' },
         chegou: { status: 'Chegou' },
         carregando: { status: 'Carregando' },
-        finalizar: { status: 'Finalizado' },
-        cancelar: { status: 'Cancelado' },
+        finalizar: { status: 'Finalizado', finalizado_por: user.email, finalizado_em: new Date().toISOString() },
+        cancelar: { status: 'Cancelado', cancelado_por: user.email, cancelado_em: new Date().toISOString() },
       };
 
       if (action === 'nao_atendeu') {
@@ -138,10 +192,12 @@ export default function Dashboard({ user, onLogout }) {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
-          <span className="eyebrow">CONTROLE DE PLACAS</span>
-          <h1>Carregamento</h1>
-          <p>{user.email}</p>
+        <div className="topbar-brand">
+          <div>
+            <span className="eyebrow">CONTROLE DE PLACAS</span>
+            <h1>Controle de Placas - Carregamento</h1>
+            <p>{user.email}</p>
+          </div>
         </div>
         <div className="topbar-actions">
           <button className="icon-text secondary" type="button" onClick={loadData} disabled={loading}>
@@ -158,7 +214,7 @@ export default function Dashboard({ user, onLogout }) {
       {message && <div className="alert success">{message}</div>}
       {error && <div className="alert error">{error}</div>}
 
-      <ReportCards report={report} />
+      <ReportCards report={report} activeKey={selectedReportCard?.key} onSelect={handleSelectReportCard} />
       <PlacaForm onSubmit={handleCreate} loading={saving} />
 
       <section className="queue-section">
@@ -181,15 +237,32 @@ export default function Dashboard({ user, onLogout }) {
           </>
         ) : (
           <>
-            <Filters finalizados filters={finishedFilters} onChange={setFinishedFilters} onClear={() => setFinishedFilters({ data: '' })} />
+            <Filters finalizados filters={finishedFilters} onChange={setFinishedFilters} onClear={() => setFinishedFilters({ data: '', busca: '' })} />
             {loading ? (
               <div className="empty-state">Carregando finalizados...</div>
             ) : (
-              <PlacasTable items={finishedItems} finalizados onAction={handleAction} onMove={handleMove} busyId={busyId} />
+              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} onAction={handleAction} onMove={handleMove} busyId={busyId} />
             )}
           </>
         )}
       </section>
+
+      <DetailsModal
+        card={selectedReportCard}
+        date={detailsDate}
+        search={detailsSearch}
+        items={detailsItems}
+        loading={detailsLoading}
+        error={detailsError}
+        canViewAudit={canViewAudit}
+        onDateChange={setDetailsDate}
+        onSearchChange={setDetailsSearch}
+        onClearFilters={() => {
+          setDetailsDate('');
+          setDetailsSearch('');
+        }}
+        onClose={handleCloseReportDetails}
+      />
     </main>
   );
 }
