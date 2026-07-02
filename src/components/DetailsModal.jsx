@@ -40,11 +40,7 @@ function AuditInfo({ item }) {
 
 function VehicleLine({ item }) {
   if (!item) return 'Truck | Placa: -';
-
-  if (item.tipo_veiculo === 'Carreta') {
-    return `Carreta | Cavalo: ${item.placa_cavalo || item.placa || '-'} | Carreta: ${item.placa_carreta || '-'}`;
-  }
-
+  if (item.tipo_veiculo === 'Carreta') return `Carreta | Cavalo: ${item.placa_cavalo || item.placa || '-'} | Carreta: ${item.placa_carreta || '-'}`;
   return `Truck | Placa: ${item.placa || '-'}`;
 }
 
@@ -61,6 +57,8 @@ export default function DetailsModal({
   onClearFilters,
   onAction,
   onMove,
+  onEdit,
+  onAudit,
   busyId,
   onClose,
 }) {
@@ -106,7 +104,7 @@ export default function DetailsModal({
               <article className="details-record-card" key={item.id}>
                 <header className="details-record-header">
                   <div>
-                    <span className="queue-order">#{item.ordem}</span>
+                    <span className="queue-order">#{index + 1}</span>
                     <h3>{item.placa}</h3>
                     <small>
                       <VehicleLine item={item} />
@@ -136,7 +134,14 @@ export default function DetailsModal({
                 </div>
 
                 {isClosed(item.status) ? (
-                  <div className="details-closed-note">Registro encerrado. Ações bloqueadas.</div>
+                  <div className="details-closed-note">
+                    <span>Registro encerrado. Ações bloqueadas.</span>
+                    {canViewAudit && (
+                      <button className="queue-action neutral audit-inline-button" type="button" onClick={() => onAudit?.(item)}>
+                        Histórico
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <div className="details-actions">
                     <ActionButtons
@@ -144,7 +149,10 @@ export default function DetailsModal({
                       index={index}
                       itemsLength={safeItems.length}
                       busyId={busyId}
+                      canViewAudit={canViewAudit}
                       onAction={onAction}
+                      onEdit={onEdit}
+                      onAudit={onAudit}
                       onMove={(current, currentIndex, direction) => onMove(current, currentIndex, direction, safeItems)}
                     />
                   </div>

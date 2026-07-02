@@ -14,16 +14,66 @@ export const STATUSES = [
 ];
 
 export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
-export const QUEUE_STATUSES = STATUSES.slice(0, 4);
+export const STATUS_FILA_ATUAL = ['Aguardando', '1ª ligação feita', '2ª ligação feita', '3ª ligação feita', 'Não atendeu'];
 
-export const AUDIT_VIEWERS = [
-  'gerencia.ce@grupodago.com.br',
-  'operacional3.ce@grupodago.com.br',
-];
+export const AUDIT_VIEWERS = ['gerencia.ce@grupodago.com.br', 'operacional3.ce@grupodago.com.br'];
 
-const REPORT_STATUSES = ['Aguardando', 'Chamado', 'Chegou', 'Carregando', 'Finalizado', 'NÃ£o atendeu', 'Cancelado'];
+const REPORT_STATUSES = ['Aguardando', 'Chamado', 'Chegou', 'Carregando', 'Finalizado', 'Não atendeu', 'Cancelado'];
 
-export const normalizeStatus = (status) => (status || '').trim().toLowerCase();
+export const normalizeStatus = (status) =>
+  String(status || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+export const normalizePlate = (value) =>
+  String(value || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .trim();
+
+const activeQueueFilter = () => `(${ACTIVE_EXCLUDED_STATUSES.map((status) => `"${status}"`).join(',')})`;
+const isStatusFilaAtual = (status) => STATUS_FILA_ATUAL.some((queueStatus) => normalizeStatus(queueStatus) === normalizeStatus(status));
+const isActiveStatus = (status) => !ACTIVE_EXCLUDED_STATUSES.some((inactiveStatus) => normalizeStatus(inactiveStatus) === normalizeStatus(status));
+
+function normalizeVehiclePayload(payload) {
+  const tipoVeiculo = payload.tipo_veiculo || 'Truck';
+  const isCarreta = tipoVeiculo === 'Carreta';
+  const placaCavalo = isCarreta ? payload.placa_cavalo?.trim().toUpperCase() || null : null;
+  const placaCarreta = isCarreta ? payload.placa_carreta?.trim().toUpperCase() || null : null;
+
+  return {
+    tipo_veiculo: tipoVeiculo,
+    placa: (isCarreta ? payload.placa_cavalo : payload.placa).trim().toUpperCase(),
+    placa_cavalo: placaCavalo,
+    placa_carreta: placaCarreta,
+    motorista: payload.motorista.trim(),
+    telefone: payload.telefone.trim(),
+    rota_1: payload.rota_1?.trim() || null,
+    rota_2: payload.rota_2?.trim() || null,
+    rota_3: payload.rota_3?.trim() || null,
+    ocorrido: payload.ocorrido?.trim() || null,
+  };
+}
+
+async function ensurePlateIsNotDuplicated(payload, ignoreId = '') {
+  const isCarreta = payload.tipo_veiculo === 'Carreta';
+  const candidatePlates = (isCarreta ? [payload.placa, payload.placa_cavalo, payload.placa_carreta] : [payload.placa]).map(normalizePlate).filter(Boolean);
+
+  if (!candidatePlates.length) return;
+
+  const { data, error } = await supabase.from('placas').select('id, placa, placa_cavalo, placa_carreta, status');
+  if (error) throw error;
+
+  const hasDuplicate = (data || [])
+    .filter((item) => item.id !== ignoreId && isActiveStatus(item.status))
+    .some((item) => [item.placa, item.placa_cavalo, item.placa_carreta].map(normalizePlate).some((plate) => plate && candidatePlates.includes(plate)));
+
+  if (hasDuplicate) {
+    throw new Error(isCarreta ? 'Já existe uma placa ativa com esse cavalo ou carreta.' : 'Essa placa já está cadastrada na fila.');
+  }
+}
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -77,49 +127,39 @@ export async function fetchPlacas({ finalizados = false, filters = {} } = {}) {
   if (finalizados) {
     query = query.in('status', ACTIVE_EXCLUDED_STATUSES);
   } else {
-    query = query.in('status', QUEUE_STATUSES);
+    query = query.not('status', 'in', activeQueueFilter());
   }
 
-  if (filters.placa) {
-    query = query.or(`placa.ilike.%${filters.placa}%,placa_cavalo.ilike.%${filters.placa}%,placa_carreta.ilike.%${filters.placa}%`);
-  }
+  if (filters.placa) query = query.or(`placa.ilike.%${filters.placa}%,placa_cavalo.ilike.%${filters.placa}%,placa_carreta.ilike.%${filters.placa}%`);
   if (filters.motorista) query = query.ilike('motorista', `%${filters.motorista}%`);
   if (filters.status) query = query.eq('status', filters.status);
   if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
   if (filters.data) query = query.eq('data', filters.data);
-  if (filters.busca) {
-    query = query.or(`placa.ilike.%${filters.busca}%,placa_cavalo.ilike.%${filters.busca}%,placa_carreta.ilike.%${filters.busca}%,motorista.ilike.%${filters.busca}%`);
-  }
+  if (filters.busca) query = query.or(`placa.ilike.%${filters.busca}%,placa_cavalo.ilike.%${filters.busca}%,placa_carreta.ilike.%${filters.busca}%,motorista.ilike.%${filters.busca}%`);
 
   query = query.order(finalizados ? 'updated_at' : 'ordem', { ascending: !finalizados });
 
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+  if (finalizados) return data;
+  return data.filter((item) => isStatusFilaAtual(item.status));
 }
 
 export async function fetchTodayReport() {
   const { data, error } = await supabase.from('placas').select('status, data');
   if (error) throw error;
 
-  const initialReport = REPORT_STATUSES.reduce(
-    (acc, status) => {
-      acc[status] = 0;
-      return acc;
-    },
-    { total: 0 }
-  );
+  const initialReport = REPORT_STATUSES.reduce((acc, status) => {
+    acc[status] = 0;
+    return acc;
+  }, { total: 0 });
 
-  return data.reduce(
-    (acc, item) => {
-      if (item.data === todayISO()) acc.total += 1;
-
-      const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
-      if (reportStatus) acc[reportStatus] += 1;
-      return acc;
-    },
-    initialReport
-  );
+  return data.reduce((acc, item) => {
+    if (item.data === todayISO()) acc.total += 1;
+    const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
+    if (reportStatus) acc[reportStatus] += 1;
+    return acc;
+  }, initialReport);
 }
 
 export async function fetchReportDetails({ status, date, search } = {}) {
@@ -132,30 +172,42 @@ export async function fetchReportDetails({ status, date, search } = {}) {
 
   const { data, error } = await query;
   if (error) throw error;
-
   if (!status) return data;
   return data.filter((item) => normalizeStatus(item.status) === normalizeStatus(status));
 }
 
-export async function createPlaca(payload, user) {
-  const { data: lastItem, error: orderError } = await supabase
-    .from('placas')
-    .select('ordem')
-    .order('ordem', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+export async function registrarAuditoria(user, { placaId, acao, statusAnterior, statusNovo, ordemAnterior, ordemNova, detalhes }) {
+  const { error } = await supabase.from('placas_auditoria').insert({
+    placa_id: placaId,
+    acao,
+    status_anterior: statusAnterior || null,
+    status_novo: statusNovo || null,
+    ordem_anterior: ordemAnterior ?? null,
+    ordem_nova: ordemNova ?? null,
+    alterado_por: user?.email || null,
+    alterado_por_id: user?.id || null,
+    detalhes: detalhes || null,
+  });
 
+  if (error) throw error;
+}
+
+export async function fetchAuditoriaPlaca(placaId) {
+  const { data, error } = await supabase.from('placas_auditoria').select('*').eq('placa_id', placaId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function createPlaca(payload, user) {
+  const recordPayload = normalizeVehiclePayload(payload);
+  await ensurePlateIsNotDuplicated(recordPayload);
+
+  const { data: lastItem, error: orderError } = await supabase.from('placas').select('ordem').order('ordem', { ascending: false }).limit(1).maybeSingle();
   if (orderError) throw orderError;
 
   const now = new Date();
   const record = {
-    ...payload,
-    tipo_veiculo: payload.tipo_veiculo || 'Truck',
-    placa: payload.placa.trim().toUpperCase(),
-    placa_cavalo: payload.placa_cavalo?.trim().toUpperCase() || null,
-    placa_carreta: payload.placa_carreta?.trim().toUpperCase() || null,
-    motorista: payload.motorista.trim(),
-    telefone: payload.telefone.trim(),
+    ...recordPayload,
     data: now.toISOString().slice(0, 10),
     hora: currentTime(),
     ordem: (lastItem?.ordem || 0) + 1,
@@ -169,6 +221,12 @@ export async function createPlaca(payload, user) {
   return data;
 }
 
+export async function updatePlacaCadastro(id, payload) {
+  const recordPayload = normalizeVehiclePayload(payload);
+  await ensurePlateIsNotDuplicated(recordPayload, id);
+  return updatePlaca(id, recordPayload);
+}
+
 export async function updatePlaca(id, payload) {
   const { data, error } = await supabase.from('placas').update(payload).eq('id', id).select().single();
   if (error) throw error;
@@ -176,16 +234,14 @@ export async function updatePlaca(id, payload) {
 }
 
 export async function moveToEnd(item) {
-  const { data: lastItem, error: orderError } = await supabase
-    .from('placas')
-    .select('ordem')
-    .in('status', QUEUE_STATUSES)
-    .order('ordem', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
+  const { data: activeItems, error: orderError } = await supabase.from('placas').select('id, ordem, status').not('status', 'in', activeQueueFilter()).order('ordem', { ascending: false });
   if (orderError) throw orderError;
-  return updatePlaca(item.id, { ordem: (lastItem?.ordem || item.ordem) + 1 });
+
+  const maxQueueOrder = (activeItems || [])
+    .filter((activeItem) => isStatusFilaAtual(activeItem.status))
+    .reduce((maxOrder, activeItem) => Math.max(maxOrder, activeItem.ordem || 0), item.ordem || 0);
+
+  return updatePlaca(item.id, { ordem: maxQueueOrder + 1 });
 }
 
 export async function swapOrder(current, target) {

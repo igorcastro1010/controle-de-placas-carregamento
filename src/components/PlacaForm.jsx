@@ -25,8 +25,8 @@ export default function PlacaForm({ onSubmit, loading }) {
       ...form,
       placa: form.tipo_veiculo === 'Carreta' ? form.placa_cavalo : form.placa,
     };
-    await onSubmit(payload);
-    setForm(initialForm);
+    const success = await onSubmit(payload);
+    if (success !== false) setForm(initialForm);
   };
 
   const isCarreta = form.tipo_veiculo === 'Carreta';

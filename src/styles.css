@@ -791,6 +791,85 @@ td {
   padding: 18px;
 }
 
+.form-modal {
+  width: min(820px, 95vw);
+  max-height: 90vh;
+  display: grid;
+  gap: 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(16, 24, 40, 0.22);
+  padding: 18px;
+}
+
+.cancel-modal {
+  width: min(560px, 95vw);
+}
+
+.modal-form {
+  display: grid;
+  gap: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.audit-history-modal {
+  width: min(760px, 95vw);
+}
+
+.audit-timeline {
+  display: grid;
+  gap: 10px;
+  max-height: min(62vh, 620px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.audit-timeline-item {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.audit-timeline-item > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.audit-timeline-item span,
+.audit-timeline-item p {
+  margin: 0;
+  color: #667085;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.audit-timeline-item strong {
+  color: #101828;
+}
+
+.audit-details {
+  padding-top: 4px;
+  white-space: pre-wrap;
+}
+
+.audit-inline-button {
+  margin-top: 8px;
+  width: fit-content;
+}
+
 .details-header {
   display: flex;
   align-items: flex-start;

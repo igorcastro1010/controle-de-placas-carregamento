@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowDownToLine, ArrowUp, Check, Loader, Megaphone, Phone, PhoneOff, X } from 'lucide-react';
+import { ArrowDown, ArrowDownToLine, ArrowUp, Check, History, Loader, Megaphone, Pencil, Phone, PhoneOff, X } from 'lucide-react';
 
 function ActionGroup({ title, children }) {
   return (
@@ -9,7 +9,7 @@ function ActionGroup({ title, children }) {
   );
 }
 
-export default function ActionButtons({ item, index, itemsLength, busyId, onAction, onMove }) {
+export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, onAction, onMove, onEdit, onAudit }) {
   const disabled = busyId === item.id;
 
   return (
@@ -30,6 +30,16 @@ export default function ActionButtons({ item, index, itemsLength, busyId, onActi
       </ActionGroup>
 
       <ActionGroup title="Status">
+        <button className="queue-action blue-soft" title="Editar cadastro" disabled={disabled} onClick={() => onEdit?.(item)}>
+          <Pencil size={14} />
+          Editar
+        </button>
+        {canViewAudit && (
+          <button className="queue-action neutral" title="Histórico" disabled={disabled} onClick={() => onAudit?.(item)}>
+            <History size={14} />
+            Histórico
+          </button>
+        )}
         <button className="queue-action danger-soft" title="Não atendeu" disabled={disabled} onClick={() => onAction(item, 'nao_atendeu')}>
           <PhoneOff size={14} />
           Não atendeu

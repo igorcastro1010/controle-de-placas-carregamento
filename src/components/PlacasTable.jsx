@@ -25,7 +25,7 @@ const columns = [
   'ações',
 ];
 
-function ActiveQueueCards({ items, onAction, onMove, busyId, canViewAudit }) {
+function ActiveQueueCards({ items, onAction, onMove, onEdit, onAudit, busyId, canViewAudit }) {
   return (
     <div className="queue-card-list">
       {items.map((item, index) => (
@@ -39,6 +39,8 @@ function ActiveQueueCards({ items, onAction, onMove, busyId, canViewAudit }) {
           canViewAudit={canViewAudit}
           onAction={onAction}
           onMove={onMove}
+          onEdit={onEdit}
+          onAudit={onAudit}
         />
       ))}
     </div>
@@ -67,13 +69,13 @@ function AuditInfo({ item }) {
   return <span className="muted">-</span>;
 }
 
-export default function PlacasTable({ items, onAction, onMove, finalizados = false, busyId, canViewAudit = false }) {
+export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, finalizados = false, busyId, canViewAudit = false }) {
   if (!items.length) {
     return <div className="empty-state">Nenhum registro encontrado.</div>;
   }
 
   if (!finalizados) {
-    return <ActiveQueueCards items={items} onAction={onAction} onMove={onMove} busyId={busyId} canViewAudit={canViewAudit} />;
+    return <ActiveQueueCards items={items} onAction={onAction} onMove={onMove} onEdit={onEdit} onAudit={onAudit} busyId={busyId} canViewAudit={canViewAudit} />;
   }
 
   return (
@@ -87,10 +89,10 @@ export default function PlacasTable({ items, onAction, onMove, finalizados = fal
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
+          {items.map((item, index) => (
             <tr key={item.id}>
               <td data-label="ordem">
-                <strong>{item.ordem}</strong>
+                <strong>{index + 1}</strong>
               </td>
               <td data-label="data">{formatDate(item.data)}</td>
               <td data-label="hora">{formatTime(item.hora)}</td>
@@ -118,6 +120,9 @@ export default function PlacasTable({ items, onAction, onMove, finalizados = fal
               {canViewAudit && (
                 <td data-label="auditoria" className="audit-cell">
                   <AuditInfo item={item} />
+                  <button className="queue-action neutral audit-inline-button" type="button" onClick={() => onAudit?.(item)}>
+                    Histórico
+                  </button>
                 </td>
               )}
               <td data-label="ações">
