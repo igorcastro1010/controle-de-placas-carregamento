@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { PlusCircle } from 'lucide-react';
 
 const initialForm = {
+  tipo_veiculo: 'Truck',
   placa: '',
+  placa_cavalo: '',
+  placa_carreta: '',
   motorista: '',
   telefone: '',
   rota_1: '',
@@ -18,9 +21,15 @@ export default function PlacaForm({ onSubmit, loading }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    await onSubmit(form);
+    const payload = {
+      ...form,
+      placa: form.tipo_veiculo === 'Carreta' ? form.placa_cavalo : form.placa,
+    };
+    await onSubmit(payload);
     setForm(initialForm);
   };
+
+  const isCarreta = form.tipo_veiculo === 'Carreta';
 
   return (
     <form className="placa-form" onSubmit={handleSubmit}>
@@ -29,16 +38,37 @@ export default function PlacaForm({ onSubmit, loading }) {
       </div>
       <div className="form-grid">
         <label>
-          Placa *
-          <input required value={form.placa} onChange={(event) => updateField('placa', event.target.value)} placeholder="ABC1D23" />
+          Tipo de veiculo *
+          <select required value={form.tipo_veiculo} onChange={(event) => updateField('tipo_veiculo', event.target.value)}>
+            <option value="Truck">Truck</option>
+            <option value="Carreta">Carreta</option>
+          </select>
         </label>
+        {!isCarreta && (
+          <label>
+            Placa *
+            <input required value={form.placa} onChange={(event) => updateField('placa', event.target.value)} placeholder="ABC1D23" />
+          </label>
+        )}
+        {isCarreta && (
+          <>
+            <label>
+              Placa do cavalo *
+              <input required value={form.placa_cavalo} onChange={(event) => updateField('placa_cavalo', event.target.value)} placeholder="ABC1D23" />
+            </label>
+            <label>
+              Placa da carreta *
+              <input required value={form.placa_carreta} onChange={(event) => updateField('placa_carreta', event.target.value)} placeholder="XYZ9A87" />
+            </label>
+          </>
+        )}
         <label>
           Motorista *
           <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} placeholder="Nome do motorista" />
         </label>
         <label>
-          Telefone
-          <input value={form.telefone} onChange={(event) => updateField('telefone', event.target.value)} placeholder="(00) 00000-0000" />
+          Telefone *
+          <input required value={form.telefone} onChange={(event) => updateField('telefone', event.target.value)} placeholder="(00) 00000-0000" />
         </label>
         <label>
           Rota 1

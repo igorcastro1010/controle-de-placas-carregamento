@@ -1,35 +1,22 @@
-import { Fragment } from 'react';
 import { X } from 'lucide-react';
+import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
 import { formatDate, formatDateTime, formatTime } from '../services/placasService';
 
-const detailColumns = [
-  ['ordem', 'ordem'],
-  ['data', 'data'],
-  ['hora', 'hora'],
-  ['placa', 'placa'],
-  ['motorista', 'motorista'],
-  ['telefone', 'telefone'],
-  ['rota_1', 'rota_1'],
-  ['rota_2', 'rota_2'],
-  ['rota_3', 'rota_3'],
-  ['primeira_ligacao', 'primeira_ligacao'],
-  ['segunda_ligacao', 'segunda_ligacao'],
-  ['terceira_ligacao', 'terceira_ligacao'],
-  ['status', 'status'],
-  ['responsavel', 'responsavel_email'],
-  ['ocorrido', 'ocorrido'],
-];
+const isClosed = (status) => ['Finalizado', 'Cancelado'].includes((status || '').trim());
 
-const formatValue = (column, item) => {
-  if (column === 'responsavel_email') return item.responsavel_email || item.responsavel || '-';
-  const value = item[column];
-  if (column === 'data') return formatDate(value);
-  if (['hora', 'primeira_ligacao', 'segunda_ligacao', 'terceira_ligacao'].includes(column)) return formatTime(value);
-  return value || '-';
-};
+function DetailField({ label, children }) {
+  return (
+    <div className="detail-field">
+      <span>{label}</span>
+      <strong>{children || '-'}</strong>
+    </div>
+  );
+}
 
 function AuditInfo({ item }) {
+  if (!item) return null;
+
   if (item.status === 'Finalizado') {
     return (
       <div className="audit-info">
@@ -51,6 +38,16 @@ function AuditInfo({ item }) {
   return null;
 }
 
+function VehicleLine({ item }) {
+  if (!item) return 'Truck | Placa: -';
+
+  if (item.tipo_veiculo === 'Carreta') {
+    return `Carreta | Cavalo: ${item.placa_cavalo || item.placa || '-'} | Carreta: ${item.placa_carreta || '-'}`;
+  }
+
+  return `Truck | Placa: ${item.placa || '-'}`;
+}
+
 export default function DetailsModal({
   card,
   date,
@@ -62,18 +59,23 @@ export default function DetailsModal({
   onDateChange,
   onSearchChange,
   onClearFilters,
+  onAction,
+  onMove,
+  busyId,
   onClose,
 }) {
   if (!card) return null;
 
+  const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
+
   return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="details-modal" role="dialog" aria-modal="true" aria-labelledby="details-modal-title">
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section className="details-modal" role="dialog" aria-modal="true" aria-labelledby="details-modal-title" onClick={(event) => event.stopPropagation()}>
         <header className="details-header">
           <div>
             <span className="eyebrow">Detalhes</span>
             <h2 id="details-modal-title">{card.label}</h2>
-            <p>{loading ? 'Carregando registros...' : `${items.length} registro${items.length === 1 ? '' : 's'} encontrado${items.length === 1 ? '' : 's'}`}</p>
+            <p>{loading ? 'Carregando registros...' : `${safeItems.length} registro${safeItems.length === 1 ? '' : 's'} encontrado${safeItems.length === 1 ? '' : 's'}`}</p>
           </div>
           <button className="icon-only" type="button" onClick={onClose} aria-label="Fechar painel">
             <X size={20} aria-hidden="true" />
@@ -98,37 +100,57 @@ export default function DetailsModal({
 
         {loading ? (
           <div className="empty-state">Carregando detalhes...</div>
-        ) : items.length ? (
-          <div className="table-shell details-table-shell">
-            <table className="details-table">
-              <thead>
-                <tr>
-                  {detailColumns.map(([label]) => (
-                    <th key={label}>{label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <Fragment key={item.id}>
-                    <tr key={item.id}>
-                      {detailColumns.map(([label, column]) => (
-                        <td key={label} data-label={label} className={column === 'ocorrido' ? 'notes-cell' : ''}>
-                          {column === 'status' ? <StatusBadge status={item.status} /> : formatValue(column, item)}
-                        </td>
-                      ))}
-                    </tr>
-                    {canViewAudit && ['Finalizado', 'Cancelado'].includes(item.status) && (
-                      <tr className="audit-row" key={`${item.id}-audit`}>
-                        <td colSpan={detailColumns.length}>
-                          <AuditInfo item={item} />
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
+        ) : safeItems.length ? (
+          <div className="details-card-list">
+            {safeItems.map((item, index) => (
+              <article className="details-record-card" key={item.id}>
+                <header className="details-record-header">
+                  <div>
+                    <span className="queue-order">#{item.ordem}</span>
+                    <h3>{item.placa}</h3>
+                    <small>
+                      <VehicleLine item={item} />
+                    </small>
+                  </div>
+                  <StatusBadge status={item.status} />
+                </header>
+
+                <div className="details-record-grid">
+                  <DetailField label="Motorista">{item.motorista}</DetailField>
+                  <DetailField label="Telefone">{item.telefone}</DetailField>
+                  <DetailField label="Data/Hora">
+                    {formatDate(item.data)} - {formatTime(item.hora)}
+                  </DetailField>
+                  <DetailField label="Rotas">{[item.rota_1, item.rota_2, item.rota_3].filter(Boolean).join(' | ') || '-'}</DetailField>
+                  <DetailField label="Ligações">
+                    1ª {formatTime(item.primeira_ligacao)} | 2ª {formatTime(item.segunda_ligacao)} | 3ª {formatTime(item.terceira_ligacao)}
+                  </DetailField>
+                  <DetailField label="Responsável">{item.responsavel_email || item.responsavel || '-'}</DetailField>
+                  {item.ocorrido && <DetailField label="Ocorrido">{item.ocorrido}</DetailField>}
+                  {canViewAudit && isClosed(item.status) && (
+                    <div className="detail-field detail-field-wide">
+                      <span>Auditoria</span>
+                      <AuditInfo item={item} />
+                    </div>
+                  )}
+                </div>
+
+                {isClosed(item.status) ? (
+                  <div className="details-closed-note">Registro encerrado. Ações bloqueadas.</div>
+                ) : (
+                  <div className="details-actions">
+                    <ActionButtons
+                      item={item}
+                      index={index}
+                      itemsLength={safeItems.length}
+                      busyId={busyId}
+                      onAction={onAction}
+                      onMove={(current, currentIndex, direction) => onMove(current, currentIndex, direction, safeItems)}
+                    />
+                  </div>
+                )}
+              </article>
+            ))}
           </div>
         ) : (
           <div className="empty-state">Nenhum registro encontrado</div>

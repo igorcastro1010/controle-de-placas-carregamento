@@ -157,6 +157,7 @@ export default function Dashboard({ user, onLogout }) {
       }
 
       await loadData();
+      if (selectedReportCard) await loadReportDetails();
     } catch (err) {
       setError(err.message || 'Não foi possível atualizar a placa.');
     } finally {
@@ -164,17 +165,19 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const handleMove = async (item, index, direction) => {
+  const handleMove = async (item, index, direction, sourceItems = items) => {
     setBusyId(item.id);
     setError('');
     try {
       if (direction === 'end') {
         await moveToEnd(item);
       } else {
-        const target = direction === 'up' ? items[index - 1] : items[index + 1];
+        const target = direction === 'up' ? sourceItems[index - 1] : sourceItems[index + 1];
+        if (!target) return;
         await swapOrder(item, target);
       }
       await loadData();
+      if (selectedReportCard) await loadReportDetails();
     } catch (err) {
       setError(err.message || 'Não foi possível mover a placa.');
     } finally {
@@ -255,6 +258,9 @@ export default function Dashboard({ user, onLogout }) {
         loading={detailsLoading}
         error={detailsError}
         canViewAudit={canViewAudit}
+        busyId={busyId}
+        onAction={handleAction}
+        onMove={handleMove}
         onDateChange={setDetailsDate}
         onSearchChange={setDetailsSearch}
         onClearFilters={() => {

@@ -14,11 +14,16 @@ export const STATUSES = [
 ];
 
 export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
+export const QUEUE_STATUSES = STATUSES.slice(0, 4);
 
 export const AUDIT_VIEWERS = [
   'gerencia.ce@grupodago.com.br',
   'operacional3.ce@grupodago.com.br',
 ];
+
+const REPORT_STATUSES = ['Aguardando', 'Chamado', 'Chegou', 'Carregando', 'Finalizado', 'NÃ£o atendeu', 'Cancelado'];
+
+export const normalizeStatus = (status) => (status || '').trim().toLowerCase();
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -72,15 +77,19 @@ export async function fetchPlacas({ finalizados = false, filters = {} } = {}) {
   if (finalizados) {
     query = query.in('status', ACTIVE_EXCLUDED_STATUSES);
   } else {
-    query = query.not('status', 'in', `(${ACTIVE_EXCLUDED_STATUSES.map((status) => `"${status}"`).join(',')})`);
+    query = query.in('status', QUEUE_STATUSES);
   }
 
-  if (filters.placa) query = query.ilike('placa', `%${filters.placa}%`);
+  if (filters.placa) {
+    query = query.or(`placa.ilike.%${filters.placa}%,placa_cavalo.ilike.%${filters.placa}%,placa_carreta.ilike.%${filters.placa}%`);
+  }
   if (filters.motorista) query = query.ilike('motorista', `%${filters.motorista}%`);
   if (filters.status) query = query.eq('status', filters.status);
   if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
   if (filters.data) query = query.eq('data', filters.data);
-  if (filters.busca) query = query.or(`placa.ilike.%${filters.busca}%,motorista.ilike.%${filters.busca}%`);
+  if (filters.busca) {
+    query = query.or(`placa.ilike.%${filters.busca}%,placa_cavalo.ilike.%${filters.busca}%,placa_carreta.ilike.%${filters.busca}%,motorista.ilike.%${filters.busca}%`);
+  }
 
   query = query.order(finalizados ? 'updated_at' : 'ordem', { ascending: !finalizados });
 
@@ -90,31 +99,42 @@ export async function fetchPlacas({ finalizados = false, filters = {} } = {}) {
 }
 
 export async function fetchTodayReport() {
-  const { data, error } = await supabase.from('placas').select('status').eq('data', todayISO());
+  const { data, error } = await supabase.from('placas').select('status, data');
   if (error) throw error;
 
-  return data.reduce(
-    (acc, item) => {
-      acc.total += 1;
-      acc[item.status] = (acc[item.status] || 0) + 1;
+  const initialReport = REPORT_STATUSES.reduce(
+    (acc, status) => {
+      acc[status] = 0;
       return acc;
     },
     { total: 0 }
+  );
+
+  return data.reduce(
+    (acc, item) => {
+      if (item.data === todayISO()) acc.total += 1;
+
+      const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
+      if (reportStatus) acc[reportStatus] += 1;
+      return acc;
+    },
+    initialReport
   );
 }
 
 export async function fetchReportDetails({ status, date, search } = {}) {
   let query = supabase.from('placas').select('*');
 
-  if (status) query = query.eq('status', status);
   if (date) query = query.eq('data', date);
-  if (search) query = query.or(`placa.ilike.%${search}%,motorista.ilike.%${search}%`);
+  if (search) query = query.or(`placa.ilike.%${search}%,placa_cavalo.ilike.%${search}%,placa_carreta.ilike.%${search}%,motorista.ilike.%${search}%`);
 
   query = query.order('data', { ascending: false }).order('ordem', { ascending: true });
 
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+
+  if (!status) return data;
+  return data.filter((item) => normalizeStatus(item.status) === normalizeStatus(status));
 }
 
 export async function createPlaca(payload, user) {
@@ -130,8 +150,12 @@ export async function createPlaca(payload, user) {
   const now = new Date();
   const record = {
     ...payload,
+    tipo_veiculo: payload.tipo_veiculo || 'Truck',
     placa: payload.placa.trim().toUpperCase(),
+    placa_cavalo: payload.placa_cavalo?.trim().toUpperCase() || null,
+    placa_carreta: payload.placa_carreta?.trim().toUpperCase() || null,
     motorista: payload.motorista.trim(),
+    telefone: payload.telefone.trim(),
     data: now.toISOString().slice(0, 10),
     hora: currentTime(),
     ordem: (lastItem?.ordem || 0) + 1,
@@ -155,7 +179,7 @@ export async function moveToEnd(item) {
   const { data: lastItem, error: orderError } = await supabase
     .from('placas')
     .select('ordem')
-    .not('status', 'in', `(${ACTIVE_EXCLUDED_STATUSES.map((status) => `"${status}"`).join(',')})`)
+    .in('status', QUEUE_STATUSES)
     .order('ordem', { ascending: false })
     .limit(1)
     .maybeSingle();

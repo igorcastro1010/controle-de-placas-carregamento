@@ -1,13 +1,14 @@
-import { CheckCircle2, Clock, Megaphone, PackageOpen, PhoneOff, Truck, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Megaphone, PackageCheck, PackageOpen, PhoneOff, Truck, XCircle } from 'lucide-react';
 
 export const reportCards = [
   { key: 'total', label: 'Cadastradas hoje', icon: Truck, className: 'accent-total', defaultToday: true },
   { key: 'Aguardando', label: 'Aguardando', icon: Clock, className: 'accent-waiting', status: 'Aguardando' },
   { key: 'Chamado', label: 'Chamado', icon: Megaphone, className: 'accent-called', status: 'Chamado' },
+  { key: 'Chegou', label: 'Chegou', icon: PackageCheck, className: 'accent-arrived', status: 'Chegou' },
   { key: 'Carregando', label: 'Carregando', icon: PackageOpen, className: 'accent-loading', status: 'Carregando' },
-  { key: 'Finalizado', label: 'Finalizado', icon: CheckCircle2, className: 'accent-done', status: 'Finalizado', defaultToday: true },
+  { key: 'Finalizado', label: 'Finalizado', icon: CheckCircle2, className: 'accent-done', status: 'Finalizado' },
   { key: 'Não atendeu', label: 'Não atendeu', icon: PhoneOff, className: 'accent-no-answer', status: 'Não atendeu' },
-  { key: 'Cancelado', label: 'Cancelado', icon: XCircle, className: 'accent-canceled', status: 'Cancelado', defaultToday: true },
+  { key: 'Cancelado', label: 'Cancelado', icon: XCircle, className: 'accent-canceled', status: 'Cancelado' },
 ];
 
 export default function ReportCards({ report, activeKey, onSelect }) {

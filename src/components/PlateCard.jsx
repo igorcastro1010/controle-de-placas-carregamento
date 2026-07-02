@@ -35,6 +35,18 @@ function AuditInfo({ item }) {
   return null;
 }
 
+function VehicleSummary({ item }) {
+  if (item.tipo_veiculo === 'Carreta') {
+    return (
+      <small className="vehicle-summary">
+        Carreta | Cavalo: {item.placa_cavalo || item.placa || '-'} | Carreta: {item.placa_carreta || '-'}
+      </small>
+    );
+  }
+
+  return <small className="vehicle-summary">Truck | Placa: {item.placa || '-'}</small>;
+}
+
 export default function PlateCard({ item, index, visualOrder, itemsLength, busyId, canViewAudit, onAction, onMove }) {
   const rotas = [item.rota_1, item.rota_2, item.rota_3].filter(Boolean);
 
@@ -46,6 +58,7 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
             <span className="queue-order">#{visualOrder}</span>
             <strong>{item.placa}</strong>
           </div>
+          <VehicleSummary item={item} />
           <div className="plate-card-driver">
             <span>{item.motorista}</span>
             <small>{valueOrDash(item.telefone)}</small>

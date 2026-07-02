@@ -7,6 +7,9 @@ const columns = [
   'data',
   'hora',
   'placa',
+  'tipo_veiculo',
+  'placa_cavalo',
+  'placa_carreta',
   'motorista',
   'telefone',
   'rota_1',
@@ -94,6 +97,9 @@ export default function PlacasTable({ items, onAction, onMove, finalizados = fal
               <td data-label="placa">
                 <strong className="plate">{item.placa}</strong>
               </td>
+              <td data-label="tipo_veiculo">{item.tipo_veiculo || 'Truck'}</td>
+              <td data-label="placa_cavalo">{item.placa_cavalo || '-'}</td>
+              <td data-label="placa_carreta">{item.placa_carreta || '-'}</td>
               <td data-label="motorista">{item.motorista}</td>
               <td data-label="telefone">{item.telefone || '-'}</td>
               <td data-label="rota_1">{item.rota_1 || '-'}</td>
