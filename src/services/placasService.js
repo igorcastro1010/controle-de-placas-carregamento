@@ -15,10 +15,20 @@ export const STATUSES = [
 
 export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
 export const STATUS_FILA_ATUAL = ['Aguardando', '1ª ligação feita', '2ª ligação feita', '3ª ligação feita', 'Não atendeu'];
-
 export const AUDIT_VIEWERS = ['gerencia.ce@grupodago.com.br', 'operacional3.ce@grupodago.com.br'];
 
-const REPORT_STATUSES = ['Aguardando', 'Chamado', 'Chegou', 'Carregando', 'Finalizado', 'Não atendeu', 'Cancelado'];
+export const REPORT_STATUSES = [
+  'Aguardando',
+  '1ª ligação feita',
+  '2ª ligação feita',
+  '3ª ligação feita',
+  'Não atendeu',
+  'Chamado',
+  'Chegou',
+  'Carregando',
+  'Finalizado',
+  'Cancelado',
+];
 
 export const normalizeStatus = (status) =>
   String(status || '')
@@ -33,21 +43,30 @@ export const normalizePlate = (value) =>
     .replace(/[^A-Z0-9]/g, '')
     .trim();
 
-const activeQueueFilter = () => `(${ACTIVE_EXCLUDED_STATUSES.map((status) => `"${status}"`).join(',')})`;
-const isStatusFilaAtual = (status) => STATUS_FILA_ATUAL.some((queueStatus) => normalizeStatus(queueStatus) === normalizeStatus(status));
-const isActiveStatus = (status) => !ACTIVE_EXCLUDED_STATUSES.some((inactiveStatus) => normalizeStatus(inactiveStatus) === normalizeStatus(status));
+export const normalizeSearch = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
+const inactiveStatusFilter = () => `(${ACTIVE_EXCLUDED_STATUSES.map((status) => `"${status}"`).join(',')})`;
+
+export const isStatusFilaAtual = (status) => STATUS_FILA_ATUAL.some((queueStatus) => normalizeStatus(queueStatus) === normalizeStatus(status));
+
+export const isActiveStatus = (status) => !ACTIVE_EXCLUDED_STATUSES.some((inactiveStatus) => normalizeStatus(inactiveStatus) === normalizeStatus(status));
 
 function normalizeVehiclePayload(payload) {
   const tipoVeiculo = payload.tipo_veiculo || 'Truck';
   const isCarreta = tipoVeiculo === 'Carreta';
-  const placaCavalo = isCarreta ? payload.placa_cavalo?.trim().toUpperCase() || null : null;
-  const placaCarreta = isCarreta ? payload.placa_carreta?.trim().toUpperCase() || null : null;
+  const placaBase = isCarreta ? payload.placa_cavalo : payload.placa;
 
   return {
     tipo_veiculo: tipoVeiculo,
-    placa: (isCarreta ? payload.placa_cavalo : payload.placa).trim().toUpperCase(),
-    placa_cavalo: placaCavalo,
-    placa_carreta: placaCarreta,
+    placa: placaBase.trim().toUpperCase(),
+    placa_cavalo: isCarreta ? payload.placa_cavalo?.trim().toUpperCase() || null : null,
+    placa_carreta: isCarreta ? payload.placa_carreta?.trim().toUpperCase() || null : null,
     motorista: payload.motorista.trim(),
     telefone: payload.telefone.trim(),
     rota_1: payload.rota_1?.trim() || null,
@@ -60,7 +79,6 @@ function normalizeVehiclePayload(payload) {
 async function ensurePlateIsNotDuplicated(payload, ignoreId = '') {
   const isCarreta = payload.tipo_veiculo === 'Carreta';
   const candidatePlates = (isCarreta ? [payload.placa, payload.placa_cavalo, payload.placa_carreta] : [payload.placa]).map(normalizePlate).filter(Boolean);
-
   if (!candidatePlates.length) return;
 
   const { data, error } = await supabase.from('placas').select('id, placa, placa_cavalo, placa_carreta, status');
@@ -127,7 +145,7 @@ export async function fetchPlacas({ finalizados = false, filters = {} } = {}) {
   if (finalizados) {
     query = query.in('status', ACTIVE_EXCLUDED_STATUSES);
   } else {
-    query = query.not('status', 'in', activeQueueFilter());
+    query = query.not('status', 'in', inactiveStatusFilter());
   }
 
   if (filters.placa) query = query.or(`placa.ilike.%${filters.placa}%,placa_cavalo.ilike.%${filters.placa}%,placa_carreta.ilike.%${filters.placa}%`);
@@ -141,8 +159,8 @@ export async function fetchPlacas({ finalizados = false, filters = {} } = {}) {
 
   const { data, error } = await query;
   if (error) throw error;
-  if (finalizados) return data;
-  return data.filter((item) => isStatusFilaAtual(item.status));
+  if (finalizados) return data || [];
+  return (data || []).filter((item) => isStatusFilaAtual(item.status));
 }
 
 export async function fetchTodayReport() {
@@ -154,7 +172,7 @@ export async function fetchTodayReport() {
     return acc;
   }, { total: 0 });
 
-  return data.reduce((acc, item) => {
+  return (data || []).reduce((acc, item) => {
     if (item.data === todayISO()) acc.total += 1;
     const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
     if (reportStatus) acc[reportStatus] += 1;
@@ -172,8 +190,33 @@ export async function fetchReportDetails({ status, date, search } = {}) {
 
   const { data, error } = await query;
   if (error) throw error;
-  if (!status) return data;
-  return data.filter((item) => normalizeStatus(item.status) === normalizeStatus(status));
+  if (!status) return data || [];
+  return (data || []).filter((item) => normalizeStatus(item.status) === normalizeStatus(status));
+}
+
+export async function fetchPeriodReport(filters = {}) {
+  let query = supabase.from('placas').select('*');
+
+  const start = filters.start || todayISO();
+  const end = filters.end || filters.start || todayISO();
+  query = query.gte('data', start).lte('data', end);
+
+  if (filters.status) query = query.eq('status', filters.status);
+  if (filters.tipo_veiculo) query = query.eq('tipo_veiculo', filters.tipo_veiculo);
+  if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
+
+  query = query.order('data', { ascending: false }).order('ordem', { ascending: true });
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  if (!filters.search) return data || [];
+
+  const normalizedSearch = normalizeSearch(filters.search);
+  return (data || []).filter((item) => {
+    const target = [item.placa, item.placa_cavalo, item.placa_carreta, item.motorista].map(normalizeSearch).join('');
+    return target.includes(normalizedSearch);
+  });
 }
 
 export async function registrarAuditoria(user, { placaId, acao, statusAnterior, statusNovo, ordemAnterior, ordemNova, detalhes }) {
@@ -195,7 +238,7 @@ export async function registrarAuditoria(user, { placaId, acao, statusAnterior, 
 export async function fetchAuditoriaPlaca(placaId) {
   const { data, error } = await supabase.from('placas_auditoria').select('*').eq('placa_id', placaId).order('created_at', { ascending: false });
   if (error) throw error;
-  return data;
+  return data || [];
 }
 
 export async function createPlaca(payload, user) {
@@ -234,7 +277,7 @@ export async function updatePlaca(id, payload) {
 }
 
 export async function moveToEnd(item) {
-  const { data: activeItems, error: orderError } = await supabase.from('placas').select('id, ordem, status').not('status', 'in', activeQueueFilter()).order('ordem', { ascending: false });
+  const { data: activeItems, error: orderError } = await supabase.from('placas').select('id, ordem, status').not('status', 'in', inactiveStatusFilter()).order('ordem', { ascending: false });
   if (orderError) throw orderError;
 
   const maxQueueOrder = (activeItems || [])
@@ -242,6 +285,17 @@ export async function moveToEnd(item) {
     .reduce((maxOrder, activeItem) => Math.max(maxOrder, activeItem.ordem || 0), item.ordem || 0);
 
   return updatePlaca(item.id, { ordem: maxQueueOrder + 1 });
+}
+
+export async function reopenPlaca(item, reason) {
+  const reopened = await updatePlaca(item.id, {
+    status: 'Aguardando',
+    cancelado_por: null,
+    cancelado_em: null,
+    ocorrido: item.ocorrido ? `${item.ocorrido}\n[Reabertura] ${reason}` : `[Reabertura] ${reason}`,
+  });
+
+  return moveToEnd(reopened);
 }
 
 export async function swapOrder(current, target) {

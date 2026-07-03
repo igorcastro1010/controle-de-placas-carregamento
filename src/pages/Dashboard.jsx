@@ -7,6 +7,8 @@ import EditPlacaModal from '../components/EditPlacaModal';
 import Filters from '../components/Filters';
 import PlacaForm from '../components/PlacaForm';
 import PlacasTable from '../components/PlacasTable';
+import PeriodReport from '../components/PeriodReport';
+import ReopenPlacaModal from '../components/ReopenPlacaModal';
 import ReportCards from '../components/ReportCards';
 import {
   AUDIT_VIEWERS,
@@ -18,6 +20,7 @@ import {
   fetchTodayReport,
   moveToEnd,
   registrarAuditoria,
+  reopenPlaca,
   signOut,
   swapOrder,
   todayISO,
@@ -62,6 +65,8 @@ export default function Dashboard({ user, onLogout }) {
   const [editSaving, setEditSaving] = useState(false);
   const [cancelingItem, setCancelingItem] = useState(null);
   const [cancelSaving, setCancelSaving] = useState(false);
+  const [reopeningItem, setReopeningItem] = useState(null);
+  const [reopenSaving, setReopenSaving] = useState(false);
   const [auditItem, setAuditItem] = useState(null);
   const [auditEntries, setAuditEntries] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -350,6 +355,31 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  const handleConfirmReopen = async (item, reason) => {
+    setReopenSaving(true);
+    setError('');
+    try {
+      const reopened = await reopenPlaca(item, reason);
+      await safeRegisterAudit({
+        placaId: item.id,
+        acao: 'Reabertura',
+        statusAnterior: item.status,
+        statusNovo: 'Aguardando',
+        ordemAnterior: item.ordem,
+        ordemNova: reopened.ordem,
+        detalhes: `Motivo: ${reason}`,
+      });
+      showSuccess('Marcação reaberta e enviada para o fim da fila.');
+      setReopeningItem(null);
+      await loadData();
+      if (selectedReportCard) await loadReportDetails();
+    } catch (err) {
+      setError(err.message || 'Não foi possível reabrir a marcação.');
+    } finally {
+      setReopenSaving(false);
+    }
+  };
+
   const handleLogout = async () => {
     await signOut();
     onLogout();
@@ -370,7 +400,11 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const tableTitle = useMemo(() => (activeTab === 'fila' ? 'Fila atual' : 'Finalizados e cancelados'), [activeTab]);
+  const tableTitle = useMemo(() => {
+    if (activeTab === 'fila') return 'Fila atual';
+    if (activeTab === 'relatorio') return 'Relatório por período';
+    return 'Finalizados e cancelados';
+  }, [activeTab]);
 
   return (
     <main className="app-shell">
@@ -410,10 +444,15 @@ export default function Dashboard({ user, onLogout }) {
             <button className={activeTab === 'finalizados' ? 'active' : ''} onClick={() => setActiveTab('finalizados')} type="button">
               Finalizados
             </button>
+            <button className={activeTab === 'relatorio' ? 'active' : ''} onClick={() => setActiveTab('relatorio')} type="button">
+              Relatório
+            </button>
           </div>
         </div>
 
-        {activeTab === 'fila' ? (
+        {activeTab === 'relatorio' ? (
+          <PeriodReport />
+        ) : activeTab === 'fila' ? (
           <>
             <Filters filters={filters} onChange={setFilters} onClear={() => setFilters(emptyFilters)} />
             {loading ? (
@@ -428,7 +467,7 @@ export default function Dashboard({ user, onLogout }) {
             {loading ? (
               <div className="empty-state">Carregando finalizados...</div>
             ) : (
-              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} busyId={busyId} />
+              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={setReopeningItem} busyId={busyId} />
             )}
           </>
         )}
@@ -447,6 +486,7 @@ export default function Dashboard({ user, onLogout }) {
         onMove={handleMove}
         onEdit={handleEdit}
         onAudit={handleOpenAudit}
+        onReopen={setReopeningItem}
         onDateChange={setDetailsDate}
         onSearchChange={setDetailsSearch}
         onClearFilters={() => {
@@ -457,6 +497,7 @@ export default function Dashboard({ user, onLogout }) {
       />
       <EditPlacaModal item={editingItem} saving={editSaving} error={editError} onClose={() => setEditingItem(null)} onSave={handleSaveEdit} />
       <CancelPlacaModal item={cancelingItem} saving={cancelSaving} onClose={() => setCancelingItem(null)} onConfirm={handleConfirmCancel} />
+      <ReopenPlacaModal item={reopeningItem} saving={reopenSaving} onClose={() => setReopeningItem(null)} onConfirm={handleConfirmReopen} />
       <AuditHistoryModal item={auditItem} entries={auditEntries} loading={auditLoading} error={auditError} onClose={() => setAuditItem(null)} />
     </main>
   );

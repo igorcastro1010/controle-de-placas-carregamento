@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { RotateCcw, X } from 'lucide-react';
 import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
 import { formatDate, formatDateTime, formatTime } from '../services/placasService';
@@ -59,6 +59,7 @@ export default function DetailsModal({
   onMove,
   onEdit,
   onAudit,
+  onReopen,
   busyId,
   onClose,
 }) {
@@ -135,11 +136,17 @@ export default function DetailsModal({
 
                 {isClosed(item.status) ? (
                   <div className="details-closed-note">
-                    <span>Registro encerrado. Ações bloqueadas.</span>
+                    <span>Registro encerrado. Ações bloqueadas para operadores.</span>
                     {canViewAudit && (
-                      <button className="queue-action neutral audit-inline-button" type="button" onClick={() => onAudit?.(item)}>
-                        Histórico
-                      </button>
+                      <div className="closed-action-row">
+                        <button className="queue-action neutral audit-inline-button" type="button" onClick={() => onAudit?.(item)}>
+                          Histórico
+                        </button>
+                        <button className="queue-action success-soft audit-inline-button" type="button" onClick={() => onReopen?.(item)}>
+                          <RotateCcw size={14} aria-hidden="true" />
+                          Reabrir
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : (

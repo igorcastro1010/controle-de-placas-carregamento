@@ -1,3 +1,4 @@
+import { RotateCcw } from 'lucide-react';
 import PlateCard from './PlateCard';
 import StatusBadge from './StatusBadge';
 import { formatDate, formatDateTime, formatTime } from '../services/placasService';
@@ -69,7 +70,7 @@ function AuditInfo({ item }) {
   return <span className="muted">-</span>;
 }
 
-export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, finalizados = false, busyId, canViewAudit = false }) {
+export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, onReopen, finalizados = false, busyId, canViewAudit = false }) {
   if (!items.length) {
     return <div className="empty-state">Nenhum registro encontrado.</div>;
   }
@@ -120,9 +121,15 @@ export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, 
               {canViewAudit && (
                 <td data-label="auditoria" className="audit-cell">
                   <AuditInfo item={item} />
-                  <button className="queue-action neutral audit-inline-button" type="button" onClick={() => onAudit?.(item)}>
-                    Histórico
-                  </button>
+                  <div className="closed-action-row">
+                    <button className="queue-action neutral audit-inline-button" type="button" onClick={() => onAudit?.(item)}>
+                      Histórico
+                    </button>
+                    <button className="queue-action success-soft audit-inline-button" type="button" onClick={() => onReopen?.(item)}>
+                      <RotateCcw size={14} aria-hidden="true" />
+                      Reabrir
+                    </button>
+                  </div>
                 </td>
               )}
               <td data-label="ações">
