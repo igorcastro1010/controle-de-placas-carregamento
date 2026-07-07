@@ -1728,6 +1728,10 @@ td {
     grid-template-columns: repeat(4, minmax(150px, 1fr));
   }
 
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
   .filters {
     grid-template-columns: repeat(3, minmax(150px, 1fr));
   }

@@ -143,6 +143,13 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           </label>
         )}
 
+        {isCarreta && (
+          <label>
+            Placa da carreta *
+            <input required value={form.placa_carreta} onChange={(event) => updateField('placa_carreta', event.target.value)} placeholder="Digite a placa da carreta" />
+          </label>
+        )}
+
         <label>
           Motorista *
           <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} placeholder="Digite o nome do motorista" />
@@ -175,13 +182,6 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           Rota 3
           <input value={form.rota_3} onChange={(event) => updateField('rota_3', event.target.value)} placeholder="Opcional" />
         </label>
-
-        {isCarreta && (
-          <label>
-            Placa da carreta *
-            <input required value={form.placa_carreta} onChange={(event) => updateField('placa_carreta', event.target.value)} placeholder="Digite a placa da carreta" />
-          </label>
-        )}
 
         <section className="operation-section full-width" aria-label="Tipo de operacao">
           <div>
