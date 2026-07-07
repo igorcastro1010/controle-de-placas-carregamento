@@ -30,6 +30,7 @@ import {
   updatePlaca,
   updatePlacaCadastro,
 } from '../services/placasService';
+import { supabase } from '../services/supabaseClient';
 
 const emptyFilters = {
   placa: '',
@@ -50,6 +51,11 @@ export default function Dashboard({ user, onLogout }) {
   const canManageQueue = isManager(user);
   const canViewAudit = canManageQueue;
   const inProgressRef = useRef(null);
+  const realtimeTimerRef = useRef(null);
+  const loadDataRef = useRef(null);
+  const loadReportDetailsRef = useRef(null);
+  const auditItemRef = useRef(null);
+  const refreshAuditRef = useRef(null);
   const [activeTab, setActiveTab] = useState('fila');
   const [items, setItems] = useState([]);
   const [inProgressItems, setInProgressItems] = useState([]);
@@ -82,6 +88,8 @@ export default function Dashboard({ user, onLogout }) {
   const [auditEntries, setAuditEntries] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState('');
+  const [realtimeStatus, setRealtimeStatus] = useState('connecting');
+  const [periodRefreshKey, setPeriodRefreshKey] = useState(0);
 
   const safeRegisterAudit = useCallback(
     async (payload) => {
@@ -118,8 +126,8 @@ export default function Dashboard({ user, onLogout }) {
       .join('; ');
   };
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     setError('');
     try {
       const [active, inProgress, finished, dailyReport] = await Promise.all([
@@ -135,7 +143,7 @@ export default function Dashboard({ user, onLogout }) {
     } catch (err) {
       setError(err.message || 'Não foi possível carregar os dados.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [filters, finishedFilters]);
 
@@ -143,10 +151,10 @@ export default function Dashboard({ user, onLogout }) {
     loadData();
   }, [loadData]);
 
-  const loadReportDetails = useCallback(async () => {
+  const loadReportDetails = useCallback(async ({ silent = false } = {}) => {
     if (!selectedReportCard) return;
 
-    setDetailsLoading(true);
+    if (!silent) setDetailsLoading(true);
     setDetailsError('');
     try {
       const data = await fetchReportDetails({
@@ -158,13 +166,88 @@ export default function Dashboard({ user, onLogout }) {
     } catch (err) {
       setDetailsError(err.message || 'Não foi possível carregar os detalhes.');
     } finally {
-      setDetailsLoading(false);
+      if (!silent) setDetailsLoading(false);
     }
   }, [detailsDate, detailsSearch, selectedReportCard]);
 
   useEffect(() => {
     loadReportDetails();
   }, [loadReportDetails]);
+
+  useEffect(() => {
+    loadDataRef.current = loadData;
+  }, [loadData]);
+
+  useEffect(() => {
+    loadReportDetailsRef.current = loadReportDetails;
+  }, [loadReportDetails]);
+
+  useEffect(() => {
+    auditItemRef.current = auditItem;
+  }, [auditItem]);
+
+  useEffect(() => {
+    refreshAuditRef.current = async () => {
+      const currentAuditItem = auditItemRef.current;
+      if (!currentAuditItem || !canViewAudit) return;
+
+      try {
+        const data = await fetchAuditoriaPlaca(currentAuditItem.id);
+        setAuditEntries(data);
+      } catch (err) {
+        console.error('Não foi possível atualizar auditoria em tempo real.', err);
+      }
+    };
+  }, [canViewAudit]);
+
+  useEffect(() => {
+    if (!supabase) {
+      setRealtimeStatus('disconnected');
+      return undefined;
+    }
+
+    setRealtimeStatus('connecting');
+
+    const scheduleRefresh = (includeAudit = false) => {
+      if (realtimeTimerRef.current) window.clearTimeout(realtimeTimerRef.current);
+
+      realtimeTimerRef.current = window.setTimeout(async () => {
+        try {
+          await loadDataRef.current?.({ silent: true });
+          await loadReportDetailsRef.current?.({ silent: true });
+          setPeriodRefreshKey((current) => current + 1);
+          if (includeAudit) await refreshAuditRef.current?.();
+          setRealtimeStatus('active');
+        } catch (err) {
+          console.error('Não foi possível atualizar dados em tempo real.', err);
+          setRealtimeStatus('disconnected');
+        }
+      }, 400);
+    };
+
+    const placasChannel = supabase
+      .channel('placas-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'placas' }, () => scheduleRefresh(false))
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setRealtimeStatus('active');
+        if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) setRealtimeStatus('disconnected');
+      });
+
+    const auditoriaChannel = supabase
+      .channel('placas-auditoria-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'placas_auditoria' }, () => scheduleRefresh(true))
+      .subscribe((status) => {
+        if (['CHANNEL_ERROR', 'TIMED_OUT'].includes(status)) {
+          console.warn('Realtime de auditoria indisponível.');
+        }
+      });
+
+    return () => {
+      if (realtimeTimerRef.current) window.clearTimeout(realtimeTimerRef.current);
+      supabase.removeChannel(placasChannel);
+      supabase.removeChannel(auditoriaChannel);
+    };
+  }, []);
 
   const showSuccess = (text) => {
     setMessage(text);
@@ -565,6 +648,10 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
         <div className="topbar-actions">
+          <span className={`realtime-indicator ${realtimeStatus === 'active' ? 'active' : 'disconnected'}`}>
+            <span aria-hidden="true" />
+            {realtimeStatus === 'active' ? 'Tempo real ativo' : realtimeStatus === 'connecting' ? 'Conectando tempo real' : 'Tempo real desconectado'}
+          </span>
           <button className="icon-text secondary" type="button" onClick={loadData} disabled={loading}>
             <RefreshCw size={16} aria-hidden="true" />
             Atualizar
@@ -609,7 +696,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
 
         {activeTab === 'relatorio' ? (
-          <PeriodReport />
+          <PeriodReport refreshSignal={periodRefreshKey} />
         ) : activeTab === 'fila' ? (
           <>
             <Filters filters={filters} onChange={setFilters} onClear={() => setFilters(emptyFilters)} />

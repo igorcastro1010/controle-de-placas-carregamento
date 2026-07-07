@@ -41,7 +41,7 @@ function DetailLine({ label, value }) {
   );
 }
 
-export default function PeriodReport() {
+export default function PeriodReport({ refreshSignal = 0 }) {
   const [filters, setFilters] = useState(initialFilters);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -64,7 +64,7 @@ export default function PeriodReport() {
   useEffect(() => {
     loadReport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, refreshSignal]);
 
   const summary = useMemo(() => {
     const statusCounts = REPORT_STATUSES.reduce((acc, status) => {

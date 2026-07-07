@@ -46,6 +46,19 @@ Nunca suba o arquivo `.env` para GitHub, Vercel ou ZIP público. Ele deve ficar 
 9. Se o projeto já existe e falta apenas auditoria, execute `supabase/migrations/add_placas_auditoria.sql`.
 10. Em `Authentication > Users`, crie os usuários que vão acessar o sistema.
 
+### Realtime do Supabase
+
+O sistema usa Supabase Realtime para atualizar automaticamente todos os computadores quando uma placa é cadastrada, editada, movida, finalizada, cancelada ou reaberta.
+
+Se as atualizações automáticas não funcionarem, habilite as tabelas na publicação realtime pelo SQL Editor:
+
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.placas;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.placas_auditoria;
+```
+
+Se o Supabase informar que a tabela já faz parte da publicação, pode ignorar o aviso. O botão `Atualizar` continua disponível como backup manual.
+
 ## Auditoria e permissões
 
 A auditoria completa é gravada na tabela `placas_auditoria`.
