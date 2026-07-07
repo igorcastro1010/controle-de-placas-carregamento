@@ -236,6 +236,9 @@ textarea {
 
 .quick-actions-bar {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: flex-start;
   margin: -4px 0 16px;
 }
@@ -243,6 +246,10 @@ textarea {
 .create-plate-button {
   min-height: 42px;
   padding-inline: 16px;
+}
+
+.scroll-progress-button {
+  min-height: 42px;
 }
 
 .primary-action,
@@ -1461,11 +1468,13 @@ td {
   }
 
   .quick-actions-bar,
-  .create-plate-button {
+  .create-plate-button,
+  .scroll-progress-button {
     width: 100%;
   }
 
-  .create-plate-button {
+  .create-plate-button,
+  .scroll-progress-button {
     justify-content: center;
   }
 

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LogOut, PlusCircle, RefreshCw, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDownCircle, LogOut, PlusCircle, RefreshCw, X } from 'lucide-react';
 import AuditHistoryModal from '../components/AuditHistoryModal';
 import CancelPlacaModal from '../components/CancelPlacaModal';
 import DetailsModal from '../components/DetailsModal';
@@ -44,6 +44,7 @@ const emptyFinishedFilters = {
 export default function Dashboard({ user, onLogout }) {
   const canManageQueue = isManager(user);
   const canViewAudit = canManageQueue;
+  const inProgressRef = useRef(null);
   const [activeTab, setActiveTab] = useState('fila');
   const [items, setItems] = useState([]);
   const [inProgressItems, setInProgressItems] = useState([]);
@@ -157,6 +158,14 @@ export default function Dashboard({ user, onLogout }) {
   const showSuccess = (text) => {
     setMessage(text);
     setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleScrollToInProgress = () => {
+    setActiveTab('fila');
+    window.setTimeout(() => {
+      const target = inProgressRef.current || document.getElementById('em-andamento');
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
   };
 
   const handleSelectReportCard = (card) => {
@@ -470,6 +479,10 @@ export default function Dashboard({ user, onLogout }) {
           <PlusCircle size={18} aria-hidden="true" />
           Cadastrar Placa
         </button>
+        <button className="icon-text secondary scroll-progress-button" type="button" onClick={handleScrollToInProgress}>
+          <ArrowDownCircle size={18} aria-hidden="true" />
+          Em Andamento
+        </button>
       </div>
 
       <section className="queue-section">
@@ -507,7 +520,7 @@ export default function Dashboard({ user, onLogout }) {
                   <PlacasTable items={items} onAction={handleAction} onMove={handleMove} onEdit={handleEdit} onAudit={handleOpenAudit} busyId={busyId} canViewAudit={canViewAudit} canManageQueue={canManageQueue} />
                 </section>
 
-                <section className="queue-subsection in-progress-subsection">
+                <section className="queue-subsection in-progress-subsection" id="em-andamento" ref={inProgressRef}>
                   <div className="queue-subsection-header">
                     <div>
                       <span className="eyebrow">Em Andamento</span>
