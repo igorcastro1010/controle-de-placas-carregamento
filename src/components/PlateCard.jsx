@@ -1,16 +1,46 @@
+import { useState } from 'react';
 import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
 import { formatDate, formatDateTime, formatTime } from '../services/placasService';
 
 const valueOrDash = (value) => value || <span className="soft-empty">-</span>;
 
-function InfoBlock({ title, children }) {
+function InfoBlock({ title, children, className = '' }) {
   return (
-    <section className="plate-info-block">
+    <section className={`plate-info-block ${className}`}>
       <span>{title}</span>
       <div>{children}</div>
     </section>
   );
+}
+
+function buildCreatedAt(item) {
+  if (item.created_at) return new Date(item.created_at);
+  if (item.data && item.hora) return new Date(`${item.data}T${item.hora}`);
+  if (item.data) return new Date(`${item.data}T00:00:00`);
+  return null;
+}
+
+function relativeTime(dateValue) {
+  if (!dateValue || Number.isNaN(dateValue.getTime())) return '-';
+
+  const diffMinutes = Math.max(0, Math.floor((Date.now() - dateValue.getTime()) / 60000));
+  if (diffMinutes < 60) return `há ${diffMinutes} min`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  const remainingMinutes = diffMinutes % 60;
+  if (diffHours < 24) return `há ${diffHours}h ${remainingMinutes}min`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `há ${diffDays} dia${diffDays === 1 ? '' : 's'}`;
+}
+
+function waitLevel(createdAt) {
+  if (!createdAt || Number.isNaN(createdAt.getTime())) return '';
+  const minutes = Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 60000));
+  if (minutes >= 60) return 'time-alert';
+  if (minutes >= 30) return 'time-attention';
+  return '';
 }
 
 function AuditInfo({ item }) {
@@ -47,8 +77,41 @@ function VehicleSummary({ item }) {
   return <small className="vehicle-summary">Truck | Placa: {item.placa || '-'}</small>;
 }
 
+function OccurredText({ value }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!value) return <small className="soft-empty">-</small>;
+
+  const isLong = value.length > 150 || value.split('\n').length > 2;
+  const displayValue = expanded || !isLong ? value : `${value.slice(0, 150).trim()}...`;
+  const parts = displayValue.split(/(\[Cancelamento\]|\[Reabertura\])/g).filter(Boolean);
+
+  return (
+    <div className="occurred-text">
+      <p className={expanded ? '' : 'collapsed'}>
+        {parts.map((part, index) =>
+          part === '[Cancelamento]' || part === '[Reabertura]' ? (
+            <span className="occurred-tag" key={`${part}-${index}`}>
+              {part}
+            </span>
+          ) : (
+            <span key={`${part}-${index}`}>{part}</span>
+          )
+        )}
+      </p>
+      {isLong && (
+        <button className="text-button" type="button" onClick={() => setExpanded((current) => !current)}>
+          {expanded ? 'Ver menos' : 'Ver mais'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function PlateCard({ item, index, visualOrder, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit }) {
   const rotas = [item.rota_1, item.rota_2, item.rota_3].filter(Boolean);
+  const createdAt = buildCreatedAt(item);
+  const updatedAt = item.updated_at ? new Date(item.updated_at) : createdAt;
+  const showLastAction = updatedAt && createdAt && Math.abs(updatedAt.getTime() - createdAt.getTime()) > 60000;
 
   return (
     <article className="plate-card">
@@ -62,6 +125,10 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
           <div className="plate-card-driver">
             <span>{item.motorista}</span>
             <small>{valueOrDash(item.telefone)}</small>
+          </div>
+          <div className={`plate-time-row ${waitLevel(createdAt)}`}>
+            <small>Cadastrado {relativeTime(createdAt)}</small>
+            {showLastAction && <small>Última ação {relativeTime(updatedAt)}</small>}
           </div>
         </div>
         <StatusBadge status={item.status} />
@@ -98,8 +165,8 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
         </InfoBlock>
 
         {item.ocorrido && (
-          <InfoBlock title="Ocorrido">
-            <small>{item.ocorrido}</small>
+          <InfoBlock title="Ocorrido" className="occurred-block">
+            <OccurredText value={item.ocorrido} />
           </InfoBlock>
         )}
 

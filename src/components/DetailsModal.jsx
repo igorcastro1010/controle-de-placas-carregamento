@@ -92,7 +92,7 @@ export default function DetailsModal({
             <input value={search || ''} onChange={(event) => onSearchChange(event.target.value)} placeholder="Digite a placa ou nome" />
           </label>
           <button className="icon-text secondary" type="button" onClick={onClearFilters}>
-            Limpar filtro
+            Limpar filtros
           </button>
         </div>
 

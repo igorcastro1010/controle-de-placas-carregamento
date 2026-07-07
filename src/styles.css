@@ -234,6 +234,17 @@ textarea {
   padding-top: 4px;
 }
 
+.quick-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 16px;
+}
+
+.create-plate-button {
+  min-height: 42px;
+  padding-inline: 16px;
+}
+
 .primary-action,
 .icon-text {
   border: 0;
@@ -281,7 +292,7 @@ textarea {
 
 .report-grid {
   display: grid;
-  grid-template-columns: repeat(8, minmax(118px, 1fr));
+  grid-template-columns: repeat(8, minmax(130px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -298,7 +309,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 13px;
+  padding: 14px;
   text-align: left;
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
@@ -321,10 +332,19 @@ textarea {
   font-weight: 800;
 }
 
+.report-card small {
+  display: block;
+  color: #98a2b3;
+  font-size: 0.68rem;
+  font-weight: 900;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
 .report-card strong {
   display: block;
   color: #101828;
-  font-size: 1.75rem;
+  font-size: 1.9rem;
   line-height: 1;
   margin-top: 7px;
 }
@@ -365,6 +385,14 @@ textarea {
 .queue-section {
   padding: 18px;
   margin-bottom: 18px;
+}
+
+.embedded-form {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
 }
 
 .section-heading {
@@ -587,6 +615,33 @@ td {
   font-weight: 700;
 }
 
+.plate-time-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.plate-time-row small {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #667085;
+  font-size: 0.75rem;
+  font-weight: 900;
+  padding: 4px 8px;
+}
+
+.plate-time-row.time-attention small {
+  background: #fff7cc;
+  color: #946200;
+}
+
+.plate-time-row.time-alert small {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .plate-card-body {
   display: grid;
   grid-template-columns: repeat(4, minmax(170px, 1fr));
@@ -636,6 +691,53 @@ td {
 
 .soft-empty {
   color: #98a2b3;
+}
+
+.occurred-block {
+  grid-column: span 2;
+}
+
+.occurred-text {
+  display: grid;
+  gap: 7px;
+}
+
+.occurred-text p {
+  margin: 0;
+  color: #667085;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.occurred-text p.collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.occurred-tag {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #1849a9;
+  font-size: 0.72rem;
+  font-weight: 900;
+  margin-right: 5px;
+  padding: 2px 7px;
+}
+
+.text-button {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  color: #155eef;
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 0;
 }
 
 .plate-card-footer {
@@ -895,6 +997,10 @@ td {
 
 .cancel-modal {
   width: min(560px, 95vw);
+}
+
+.cadastro-modal {
+  width: min(980px, 95vw);
 }
 
 .modal-form {

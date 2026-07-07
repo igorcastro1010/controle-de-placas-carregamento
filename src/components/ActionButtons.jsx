@@ -146,7 +146,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
       <div className="more-actions">
         <button ref={triggerRef} className="queue-action neutral more-actions-trigger" type="button" disabled={disabled} aria-expanded={menuOpen} onClick={toggleMenu}>
           <MoreHorizontal size={15} />
-          Mais ações
+          Ações
           <ChevronDown size={14} />
         </button>
 

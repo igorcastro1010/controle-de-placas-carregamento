@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LogOut, RefreshCw } from 'lucide-react';
+import { LogOut, PlusCircle, RefreshCw, X } from 'lucide-react';
 import AuditHistoryModal from '../components/AuditHistoryModal';
 import CancelPlacaModal from '../components/CancelPlacaModal';
 import DetailsModal from '../components/DetailsModal';
@@ -49,6 +49,7 @@ export default function Dashboard({ user, onLogout }) {
   const [inProgressItems, setInProgressItems] = useState([]);
   const [finishedItems, setFinishedItems] = useState([]);
   const [report, setReport] = useState({});
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [filters, setFilters] = useState(emptyFilters);
   const [finishedFilters, setFinishedFilters] = useState(emptyFinishedFilters);
   const [loading, setLoading] = useState(true);
@@ -187,6 +188,7 @@ export default function Dashboard({ user, onLogout }) {
         detalhes: 'Placa cadastrada no sistema.',
       });
       showSuccess('Placa cadastrada no final da fila.');
+      setCreateModalOpen(false);
       await loadData();
       return true;
     } catch (err) {
@@ -431,9 +433,9 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const tableTitle = useMemo(() => {
-    if (activeTab === 'fila') return 'Fila de chamada';
+    if (activeTab === 'fila') return 'Fila de Chamada';
     if (activeTab === 'relatorio') return 'Relatório por período';
-    return 'Finalizados e cancelados';
+    return 'Finalizados e Cancelados';
   }, [activeTab]);
 
   return (
@@ -462,7 +464,13 @@ export default function Dashboard({ user, onLogout }) {
       {error && <div className="alert error">{error}</div>}
 
       <ReportCards report={report} activeKey={selectedReportCard?.key} onSelect={handleSelectReportCard} />
-      <PlacaForm onSubmit={handleCreate} loading={saving} />
+
+      <div className="quick-actions-bar">
+        <button className="primary-action create-plate-button" type="button" onClick={() => setCreateModalOpen(true)}>
+          <PlusCircle size={18} aria-hidden="true" />
+          Cadastrar Placa
+        </button>
+      </div>
 
       <section className="queue-section">
         <div className="section-heading">
@@ -559,6 +567,24 @@ export default function Dashboard({ user, onLogout }) {
       <CancelPlacaModal item={cancelingItem} saving={cancelSaving} onClose={() => setCancelingItem(null)} onConfirm={handleConfirmCancel} />
       <ReopenPlacaModal item={reopeningItem} saving={reopenSaving} onClose={() => setReopeningItem(null)} onConfirm={handleConfirmReopen} />
       <AuditHistoryModal item={auditItem} entries={auditEntries} loading={auditLoading} error={auditError} onClose={() => setAuditItem(null)} />
+
+      {createModalOpen && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setCreateModalOpen(false)}>
+          <section className="form-modal cadastro-modal" role="dialog" aria-modal="true" aria-labelledby="cadastro-modal-title" onClick={(event) => event.stopPropagation()}>
+            <header className="details-header">
+              <div>
+                <span className="eyebrow">Cadastro</span>
+                <h2 id="cadastro-modal-title">Cadastro de Placa</h2>
+                <p>Preencha os dados para adicionar a placa no final da fila.</p>
+              </div>
+              <button className="icon-only" type="button" onClick={() => setCreateModalOpen(false)} aria-label="Fechar cadastro">
+                <X size={20} aria-hidden="true" />
+              </button>
+            </header>
+            <PlacaForm onSubmit={handleCreate} loading={saving} error={error} embedded />
+          </section>
+        </div>
+      )}
     </main>
   );
 }

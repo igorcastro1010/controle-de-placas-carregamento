@@ -1,20 +1,20 @@
 import { CheckCircle2, Clock, Megaphone, PackageCheck, PackageOpen, PhoneOff, Truck, XCircle } from 'lucide-react';
 
 export const reportCards = [
-  { key: 'total', label: 'Cadastradas hoje', icon: Truck, className: 'accent-total', defaultToday: true },
-  { key: 'Aguardando', label: 'Aguardando', icon: Clock, className: 'accent-waiting', status: 'Aguardando' },
-  { key: 'Chamado', label: 'Chamado', icon: Megaphone, className: 'accent-called', status: 'Chamado' },
-  { key: 'Chegou', label: 'Chegou', icon: PackageCheck, className: 'accent-arrived', status: 'Chegou' },
-  { key: 'Carregando', label: 'Carregando', icon: PackageOpen, className: 'accent-loading', status: 'Carregando' },
-  { key: 'Finalizado', label: 'Finalizado', icon: CheckCircle2, className: 'accent-done', status: 'Finalizado' },
-  { key: 'Não atendeu', label: 'Não atendeu', icon: PhoneOff, className: 'accent-no-answer', status: 'Não atendeu' },
-  { key: 'Cancelado', label: 'Cancelado', icon: XCircle, className: 'accent-canceled', status: 'Cancelado' },
+  { key: 'total', label: 'Cadastros hoje', group: 'Fila de Chamada', icon: Truck, className: 'accent-total', defaultToday: true },
+  { key: 'Aguardando', label: 'Aguardando', group: 'Fila de Chamada', icon: Clock, className: 'accent-waiting', status: 'Aguardando' },
+  { key: 'Chamado', label: 'Chamado', group: 'Em Andamento', icon: Megaphone, className: 'accent-called', status: 'Chamado' },
+  { key: 'Chegou', label: 'Chegou', group: 'Em Andamento', icon: PackageCheck, className: 'accent-arrived', status: 'Chegou' },
+  { key: 'Carregando', label: 'Carregando', group: 'Em Andamento', icon: PackageOpen, className: 'accent-loading', status: 'Carregando' },
+  { key: 'Finalizado', label: 'Finalizado', group: 'Encerrados', icon: CheckCircle2, className: 'accent-done', status: 'Finalizado' },
+  { key: 'Não atendeu', label: 'Não atendeu', group: 'Fila de Chamada', icon: PhoneOff, className: 'accent-no-answer', status: 'Não atendeu' },
+  { key: 'Cancelado', label: 'Cancelado', group: 'Encerrados', icon: XCircle, className: 'accent-canceled', status: 'Cancelado' },
 ];
 
 export default function ReportCards({ report, activeKey, onSelect }) {
   return (
     <section className="report-grid" aria-label="Relatório do dia">
-      {reportCards.map(({ key, label, icon: Icon, className, status, defaultToday }) => (
+      {reportCards.map(({ key, label, group, icon: Icon, className, status, defaultToday }) => (
         <button
           className={`report-card ${className} ${activeKey === key ? 'active' : ''}`}
           key={key}
@@ -22,6 +22,7 @@ export default function ReportCards({ report, activeKey, onSelect }) {
           onClick={() => onSelect?.({ key, label, status, defaultToday })}
         >
           <div>
+            <small>{group}</small>
             <span>{label}</span>
             <strong>{report?.[key] || 0}</strong>
           </div>

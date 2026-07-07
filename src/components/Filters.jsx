@@ -10,15 +10,16 @@ export default function Filters({ filters, onChange, onClear, finalizados = fals
         <Search size={18} aria-hidden="true" />
         <strong>Filtros</strong>
       </div>
+
       {!finalizados && (
         <>
           <label>
             Placa
-            <input value={filters.placa || ''} onChange={(event) => setFilter('placa', event.target.value)} placeholder="ABC1D23" />
+            <input value={filters.placa || ''} onChange={(event) => setFilter('placa', event.target.value)} placeholder="Buscar placa" />
           </label>
           <label>
             Motorista
-            <input value={filters.motorista || ''} onChange={(event) => setFilter('motorista', event.target.value)} placeholder="Nome" />
+            <input value={filters.motorista || ''} onChange={(event) => setFilter('motorista', event.target.value)} placeholder="Buscar motorista" />
           </label>
           <label>
             Status
@@ -33,23 +34,26 @@ export default function Filters({ filters, onChange, onClear, finalizados = fals
           </label>
           <label>
             Responsável
-            <input value={filters.responsavel || ''} onChange={(event) => setFilter('responsavel', event.target.value)} placeholder="email" />
+            <input value={filters.responsavel || ''} onChange={(event) => setFilter('responsavel', event.target.value)} placeholder="Buscar responsável" />
           </label>
         </>
       )}
+
       {finalizados && (
         <label className="wide-filter">
           Placa ou motorista
           <input value={filters.busca || ''} onChange={(event) => setFilter('busca', event.target.value)} placeholder="Digite a placa ou nome" />
         </label>
       )}
+
       <label>
         Data
         <input type="date" value={filters.data || ''} onChange={(event) => setFilter('data', event.target.value)} />
       </label>
+
       <button className="icon-text secondary" type="button" onClick={onClear}>
         <X size={16} aria-hidden="true" />
-        Limpar
+        Limpar filtros
       </button>
     </section>
   );

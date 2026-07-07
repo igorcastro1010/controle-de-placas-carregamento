@@ -124,10 +124,10 @@ export default function PeriodReport() {
         </label>
         <label>
           Responsável
-          <input value={filters.responsavel} onChange={(event) => updateFilter('responsavel', event.target.value)} placeholder="E-mail do responsável" />
+          <input value={filters.responsavel} onChange={(event) => updateFilter('responsavel', event.target.value)} placeholder="Buscar responsável" />
         </label>
         <button className="icon-text secondary" type="button" onClick={clearFilters}>
-          Limpar filtro
+          Limpar filtros
         </button>
       </div>
 
