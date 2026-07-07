@@ -96,13 +96,13 @@ function OccurredText({ value }) {
 
   const isLong = value.length > 150 || value.split('\n').length > 2;
   const displayValue = expanded || !isLong ? value : `${value.slice(0, 150).trim()}...`;
-  const parts = displayValue.split(/(\[Cancelamento\]|\[Reabertura\])/g).filter(Boolean);
+  const parts = displayValue.split(/(\[Cancelamento\]|\[Reabertura\])/gi).filter(Boolean);
 
   return (
     <div className="occurred-text">
       <p className={expanded ? '' : 'collapsed'}>
         {parts.map((part, index) =>
-          part === '[Cancelamento]' || part === '[Reabertura]' ? (
+          /^\[(cancelamento|reabertura)\]$/i.test(part) ? (
             <span className="occurred-tag" key={`${part}-${index}`}>
               {part}
             </span>

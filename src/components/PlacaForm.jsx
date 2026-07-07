@@ -16,10 +16,16 @@ const initialForm = {
   ocorrido: '',
 };
 
+const upperInputFields = new Set(['placa', 'placa_cavalo', 'placa_carreta', 'motorista', 'telefone', 'rota_1', 'rota_2', 'rota_3', 'ocorrido']);
+
 export default function PlacaForm({ onSubmit, loading, error, embedded = false }) {
   const [form, setForm] = useState(initialForm);
 
-  const updateField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const updateField = (field, value) =>
+    setForm((current) => ({
+      ...current,
+      [field]: upperInputFields.has(field) ? String(value || '').toUpperCase() : value,
+    }));
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -27,7 +33,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
       ...form,
       placa: form.tipo_veiculo === 'Carreta' ? form.placa_cavalo : form.placa,
       prioridade_local: form.retorno_local,
-      prioridade_motivo: form.retorno_local ? 'Retorno de entrega local' : '',
+      prioridade_motivo: form.retorno_local ? 'RETORNO DE ENTREGA LOCAL' : '',
     };
     const success = await onSubmit(payload);
     if (success !== false) setForm(initialForm);

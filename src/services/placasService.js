@@ -45,6 +45,10 @@ export const normalizePlate = (value) =>
     .replace(/[^A-Z0-9]/g, '')
     .trim();
 
+export const toUpperText = (value) => String(value || '').toUpperCase().trim();
+
+const toUpperOrNull = (value) => toUpperText(value) || null;
+
 export const normalizeSearch = (value) =>
   String(value || '')
     .trim()
@@ -76,24 +80,25 @@ function normalizeVehiclePayload(payload) {
   const placaBase = isCarreta ? payload.placa_cavalo : payload.placa;
   const retornoLocal = Boolean(payload.retorno_local);
   const prioridadeLocal = Boolean(payload.prioridade_local || retornoLocal);
+  const prioridadeMotivo = toUpperText(payload.prioridade_motivo) || 'RETORNO DE ENTREGA LOCAL';
 
   return {
     tipo_veiculo: tipoVeiculo,
-    placa: placaBase.trim().toUpperCase(),
-    placa_cavalo: isCarreta ? payload.placa_cavalo?.trim().toUpperCase() || null : null,
-    placa_carreta: isCarreta ? payload.placa_carreta?.trim().toUpperCase() || null : null,
+    placa: toUpperText(placaBase),
+    placa_cavalo: isCarreta ? toUpperOrNull(payload.placa_cavalo) : null,
+    placa_carreta: isCarreta ? toUpperOrNull(payload.placa_carreta) : null,
     entrega_local: Boolean(payload.entrega_local),
     retorno_local: retornoLocal,
     prioridade_local: prioridadeLocal,
-    prioridade_motivo: prioridadeLocal ? payload.prioridade_motivo?.trim() || 'Retorno de entrega local' : null,
+    prioridade_motivo: prioridadeLocal ? prioridadeMotivo : null,
     prioridade_por: prioridadeLocal ? payload.prioridade_por || null : null,
     prioridade_em: prioridadeLocal ? payload.prioridade_em || null : null,
-    motorista: payload.motorista.trim(),
-    telefone: payload.telefone.trim(),
-    rota_1: payload.rota_1?.trim() || null,
-    rota_2: payload.rota_2?.trim() || null,
-    rota_3: payload.rota_3?.trim() || null,
-    ocorrido: payload.ocorrido?.trim() || null,
+    motorista: toUpperText(payload.motorista),
+    telefone: toUpperText(payload.telefone),
+    rota_1: toUpperOrNull(payload.rota_1),
+    rota_2: toUpperOrNull(payload.rota_2),
+    rota_3: toUpperOrNull(payload.rota_3),
+    ocorrido: toUpperOrNull(payload.ocorrido),
   };
 }
 
@@ -341,7 +346,7 @@ export async function moveToEnd(item) {
   return updatePlaca(item.id, { ordem: maxQueueOrder + 1 });
 }
 
-export async function addPrioridadeLocal(item, user, reason = 'Retorno de entrega local') {
+export async function addPrioridadeLocal(item, user, reason = 'RETORNO DE ENTREGA LOCAL') {
   const { data: priorityItems, error: orderError } = await supabase
     .from('placas')
     .select('id, ordem, status, prioridade_local')
@@ -355,7 +360,7 @@ export async function addPrioridadeLocal(item, user, reason = 'Retorno de entreg
   return updatePlaca(item.id, {
     prioridade_local: true,
     retorno_local: true,
-    prioridade_motivo: reason.trim() || 'Retorno de entrega local',
+    prioridade_motivo: toUpperText(reason) || 'RETORNO DE ENTREGA LOCAL',
     prioridade_por: user.email,
     prioridade_em: new Date().toISOString(),
     ordem: nextOrder,
@@ -377,11 +382,12 @@ export async function removePrioridadeLocal(item) {
 }
 
 export async function reopenPlaca(item, reason) {
+  const reopenReason = toUpperText(reason);
   const reopened = await updatePlaca(item.id, {
     status: 'Aguardando',
     cancelado_por: null,
     cancelado_em: null,
-    ocorrido: item.ocorrido ? `${item.ocorrido}\n[Reabertura] ${reason}` : `[Reabertura] ${reason}`,
+    ocorrido: item.ocorrido ? `${item.ocorrido}\n[Reabertura] ${reopenReason}` : `[Reabertura] ${reopenReason}`,
   });
 
   return moveToEnd(reopened);

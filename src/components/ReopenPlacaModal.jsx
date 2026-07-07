@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RotateCcw, X } from 'lucide-react';
+import { toUpperText } from '../services/placasService';
 
 const reasons = ['Motorista retornou', 'Cancelamento incorreto', 'Finalização incorreta', 'Solicitação da gerência', 'Outro'];
 
@@ -16,7 +17,7 @@ export default function ReopenPlacaModal({ item, saving, onClose, onConfirm }) {
 
   if (!item) return null;
 
-  const finalReason = reason === 'Outro' ? details.trim() : [reason, details.trim()].filter(Boolean).join(' - ');
+  const finalReason = toUpperText(reason === 'Outro' ? details : [reason, details].filter(Boolean).join(' - '));
   const canConfirm = Boolean(finalReason.trim());
 
   const handleSubmit = async (event) => {
@@ -54,7 +55,7 @@ export default function ReopenPlacaModal({ item, saving, onClose, onConfirm }) {
 
           <label>
             Observação
-            <textarea value={details} onChange={(event) => setDetails(event.target.value)} rows="4" placeholder="Detalhe o motivo, se necessário" />
+            <textarea value={details} onChange={(event) => setDetails(event.target.value.toUpperCase())} rows="4" placeholder="Detalhe o motivo, se necessário" />
           </label>
 
           <div className="modal-actions">

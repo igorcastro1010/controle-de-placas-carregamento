@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { toUpperText } from '../services/placasService';
 
 const emptyForm = {
   tipo_veiculo: 'Truck',
@@ -20,25 +21,27 @@ const emptyForm = {
   ocorrido: '',
 };
 
+const upperInputFields = new Set(['placa', 'placa_cavalo', 'placa_carreta', 'motorista', 'telefone', 'rota_1', 'rota_2', 'rota_3', 'ocorrido', 'prioridade_motivo']);
+
 function formFromItem(item) {
   if (!item) return emptyForm;
   return {
     tipo_veiculo: item.tipo_veiculo || 'Truck',
-    placa: item.placa || '',
-    placa_cavalo: item.placa_cavalo || '',
-    placa_carreta: item.placa_carreta || '',
+    placa: toUpperText(item.placa),
+    placa_cavalo: toUpperText(item.placa_cavalo),
+    placa_carreta: toUpperText(item.placa_carreta),
     entrega_local: Boolean(item.entrega_local),
     retorno_local: Boolean(item.retorno_local),
     prioridade_local: Boolean(item.prioridade_local),
-    prioridade_motivo: item.prioridade_motivo || '',
+    prioridade_motivo: toUpperText(item.prioridade_motivo),
     prioridade_por: item.prioridade_por || '',
     prioridade_em: item.prioridade_em || '',
-    motorista: item.motorista || '',
-    telefone: item.telefone || '',
-    rota_1: item.rota_1 || '',
-    rota_2: item.rota_2 || '',
-    rota_3: item.rota_3 || '',
-    ocorrido: item.ocorrido || '',
+    motorista: toUpperText(item.motorista),
+    telefone: toUpperText(item.telefone),
+    rota_1: toUpperText(item.rota_1),
+    rota_2: toUpperText(item.rota_2),
+    rota_3: toUpperText(item.rota_3),
+    ocorrido: toUpperText(item.ocorrido),
   };
 }
 
@@ -52,7 +55,11 @@ export default function EditPlacaModal({ item, saving, error, onClose, onSave })
   if (!item) return null;
 
   const isCarreta = form.tipo_veiculo === 'Carreta';
-  const updateField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const updateField = (field, value) =>
+    setForm((current) => ({
+      ...current,
+      [field]: upperInputFields.has(field) ? String(value || '').toUpperCase() : value,
+    }));
 
   const handleSubmit = async (event) => {
     event.preventDefault();

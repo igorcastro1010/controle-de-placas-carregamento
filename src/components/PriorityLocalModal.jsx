@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Star, X } from 'lucide-react';
+import { toUpperText } from '../services/placasService';
 
-const defaultReason = 'Retorno de entrega local';
+const defaultReason = 'RETORNO DE ENTREGA LOCAL';
 
 export default function PriorityLocalModal({ item, saving = false, onClose, onConfirm }) {
   const [reason, setReason] = useState(defaultReason);
@@ -9,7 +10,7 @@ export default function PriorityLocalModal({ item, saving = false, onClose, onCo
 
   useEffect(() => {
     if (item) {
-      setReason(item.prioridade_motivo || defaultReason);
+      setReason(toUpperText(item.prioridade_motivo) || defaultReason);
       setError('');
     }
   }, [item]);
@@ -18,7 +19,7 @@ export default function PriorityLocalModal({ item, saving = false, onClose, onCo
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const trimmedReason = reason.trim();
+    const trimmedReason = toUpperText(reason);
     if (!trimmedReason) {
       setError('Informe o motivo da prioridade.');
       return;
@@ -46,7 +47,7 @@ export default function PriorityLocalModal({ item, saving = false, onClose, onCo
           {error && <div className="alert error">{error}</div>}
           <label>
             Motivo *
-            <textarea value={reason} onChange={(event) => setReason(event.target.value)} rows="3" placeholder="Informe o motivo da prioridade" />
+            <textarea value={reason} onChange={(event) => setReason(event.target.value.toUpperCase())} rows="3" placeholder="Informe o motivo da prioridade" />
           </label>
           <div className="modal-actions">
             <button className="icon-text secondary" type="button" onClick={onClose} disabled={saving}>

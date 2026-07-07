@@ -27,6 +27,7 @@ import {
   swapOrder,
   isManager,
   todayISO,
+  toUpperText,
   updatePlaca,
   updatePlacaCadastro,
 } from '../services/placasService';
@@ -305,7 +306,7 @@ export default function Dashboard({ user, onLogout }) {
           acao: 'Prioridade local adicionada',
           statusNovo: created.status,
           ordemNova: created.ordem,
-          detalhes: `Motivo: ${created.prioridade_motivo || 'Retorno de entrega local'}; Por: ${created.prioridade_por || user.email}; Em: ${created.prioridade_em || '-'}`,
+          detalhes: `Motivo: ${created.prioridade_motivo || 'RETORNO DE ENTREGA LOCAL'}; Por: ${created.prioridade_por || user.email}; Em: ${created.prioridade_em || '-'}`,
         });
       }
       showSuccess(created.prioridade_local ? 'Placa cadastrada com prioridade local.' : 'Placa cadastrada no final da fila.');
@@ -472,7 +473,8 @@ export default function Dashboard({ user, onLogout }) {
     setCancelSaving(true);
     setError('');
     try {
-      const cancelNote = `[Cancelamento] ${reason}`;
+      const cancelReason = toUpperText(reason);
+      const cancelNote = `[Cancelamento] ${cancelReason}`;
       const ocorrido = item.ocorrido ? `${item.ocorrido}\n${cancelNote}` : cancelNote;
       const updated = await updatePlaca(item.id, {
         status: 'Cancelado',
@@ -487,7 +489,7 @@ export default function Dashboard({ user, onLogout }) {
         statusNovo: 'Cancelado',
         ordemAnterior: item.ordem,
         ordemNova: updated.ordem,
-        detalhes: `Motivo: ${reason}`,
+        detalhes: `Motivo: ${cancelReason}`,
       });
       setCancelingItem(null);
       await loadData();
@@ -553,7 +555,8 @@ export default function Dashboard({ user, onLogout }) {
     setBusyId(item.id);
     setError('');
     try {
-      const updated = await addPrioridadeLocal(item, user, reason);
+      const priorityReason = toUpperText(reason);
+      const updated = await addPrioridadeLocal(item, user, priorityReason);
       await safeRegisterAudit({
         placaId: item.id,
         acao: 'Prioridade local adicionada',
@@ -561,7 +564,7 @@ export default function Dashboard({ user, onLogout }) {
         statusNovo: updated.status,
         ordemAnterior: item.ordem,
         ordemNova: updated.ordem,
-        detalhes: `Motivo: ${reason}; Por: ${updated.prioridade_por || user.email}; Em: ${updated.prioridade_em || '-'}`,
+        detalhes: `Motivo: ${priorityReason}; Por: ${updated.prioridade_por || user.email}; Em: ${updated.prioridade_em || '-'}`,
       });
       showSuccess('Prioridade local adicionada.');
       setPriorityItem(null);
@@ -585,7 +588,8 @@ export default function Dashboard({ user, onLogout }) {
     setReopenSaving(true);
     setError('');
     try {
-      const reopened = await reopenPlaca(item, reason);
+      const reopenReason = toUpperText(reason);
+      const reopened = await reopenPlaca(item, reopenReason);
       await safeRegisterAudit({
         placaId: item.id,
         acao: 'Reabertura',
@@ -593,7 +597,7 @@ export default function Dashboard({ user, onLogout }) {
         statusNovo: 'Aguardando',
         ordemAnterior: item.ordem,
         ordemNova: reopened.ordem,
-        detalhes: `Motivo: ${reason}`,
+        detalhes: `Motivo: ${reopenReason}`,
       });
       showSuccess('Marcação reaberta e enviada para o fim da fila.');
       setReopeningItem(null);
