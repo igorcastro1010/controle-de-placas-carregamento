@@ -133,3 +133,67 @@ using (
     'operacional3.ce@grupodago.com.br'
   )
 );
+
+create table if not exists public.veiculos_motoristas (
+  id uuid primary key default gen_random_uuid(),
+  tipo_veiculo text,
+  placa text,
+  placa_cavalo text,
+  placa_carreta text,
+  motorista text,
+  telefone text,
+  rota_1 text,
+  rota_2 text,
+  rota_3 text,
+  observacao_padrao text,
+  ultimo_uso_em timestamp with time zone,
+  criado_por text,
+  criado_por_id uuid references auth.users(id) on delete set null,
+  atualizado_por text,
+  atualizado_por_id uuid references auth.users(id) on delete set null,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+create index if not exists veiculos_motoristas_placa_idx on public.veiculos_motoristas (placa);
+create index if not exists veiculos_motoristas_placa_cavalo_idx on public.veiculos_motoristas (placa_cavalo);
+create index if not exists veiculos_motoristas_placa_carreta_idx on public.veiculos_motoristas (placa_carreta);
+create index if not exists veiculos_motoristas_motorista_idx on public.veiculos_motoristas (motorista);
+create index if not exists veiculos_motoristas_ultimo_uso_idx on public.veiculos_motoristas (ultimo_uso_em);
+
+create or replace function public.set_veiculos_motoristas_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists veiculos_motoristas_updated_at on public.veiculos_motoristas;
+create trigger veiculos_motoristas_updated_at
+before update on public.veiculos_motoristas
+for each row
+execute function public.set_veiculos_motoristas_updated_at();
+
+alter table public.veiculos_motoristas enable row level security;
+
+drop policy if exists "Usuarios autenticados podem ler veiculos motoristas" on public.veiculos_motoristas;
+create policy "Usuarios autenticados podem ler veiculos motoristas"
+on public.veiculos_motoristas for select
+to authenticated
+using (true);
+
+drop policy if exists "Usuarios autenticados podem inserir veiculos motoristas" on public.veiculos_motoristas;
+create policy "Usuarios autenticados podem inserir veiculos motoristas"
+on public.veiculos_motoristas for insert
+to authenticated
+with check (auth.uid() = criado_por_id);
+
+drop policy if exists "Usuarios autenticados podem atualizar veiculos motoristas" on public.veiculos_motoristas;
+create policy "Usuarios autenticados podem atualizar veiculos motoristas"
+on public.veiculos_motoristas for update
+to authenticated
+using (true)
+with check (true);

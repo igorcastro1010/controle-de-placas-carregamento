@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PlusCircle } from 'lucide-react';
+import { findVeiculoMotoristaByPlate, normalizePlate, toUpperText } from '../services/placasService';
 
 const initialForm = {
   tipo_veiculo: 'Truck',
@@ -20,12 +21,62 @@ const upperInputFields = new Set(['placa', 'placa_cavalo', 'placa_carreta', 'mot
 
 export default function PlacaForm({ onSubmit, loading, error, embedded = false }) {
   const [form, setForm] = useState(initialForm);
+  const [lookupStatus, setLookupStatus] = useState('');
 
   const updateField = (field, value) =>
     setForm((current) => ({
       ...current,
       [field]: upperInputFields.has(field) ? String(value || '').toUpperCase() : value,
     }));
+
+  const isCarreta = form.tipo_veiculo === 'Carreta';
+  const lookupPlate = isCarreta ? form.placa_cavalo : form.placa;
+
+  useEffect(() => {
+    const normalizedLookupPlate = normalizePlate(lookupPlate);
+    if (normalizedLookupPlate.length < 3) {
+      setLookupStatus('');
+      return undefined;
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const savedRegistration = await findVeiculoMotoristaByPlate(normalizedLookupPlate);
+        if (!savedRegistration) {
+          setLookupStatus('');
+          return;
+        }
+
+        setForm((current) => {
+          const currentPlate = current.tipo_veiculo === 'Carreta' ? current.placa_cavalo : current.placa;
+          if (normalizePlate(currentPlate) !== normalizedLookupPlate) return current;
+
+          const savedTipoVeiculo = savedRegistration.tipo_veiculo || 'Truck';
+          const savedIsCarreta = savedTipoVeiculo === 'Carreta';
+
+          return {
+            ...current,
+            tipo_veiculo: savedTipoVeiculo,
+            placa: savedIsCarreta ? toUpperText(savedRegistration.placa_cavalo || savedRegistration.placa) : toUpperText(savedRegistration.placa),
+            placa_cavalo: savedIsCarreta ? toUpperText(savedRegistration.placa_cavalo || savedRegistration.placa) : '',
+            placa_carreta: savedIsCarreta ? toUpperText(savedRegistration.placa_carreta) : '',
+            motorista: toUpperText(savedRegistration.motorista),
+            telefone: toUpperText(savedRegistration.telefone),
+            rota_1: toUpperText(savedRegistration.rota_1),
+            rota_2: toUpperText(savedRegistration.rota_2),
+            rota_3: toUpperText(savedRegistration.rota_3),
+            ocorrido: savedRegistration.observacao_padrao ? toUpperText(savedRegistration.observacao_padrao) : current.ocorrido,
+          };
+        });
+        setLookupStatus('Cadastro encontrado: dados preenchidos.');
+      } catch (err) {
+        console.warn('Não foi possível buscar cadastro salvo do veículo.', err);
+        setLookupStatus('');
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [lookupPlate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -38,8 +89,6 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
     const success = await onSubmit(payload);
     if (success !== false) setForm(initialForm);
   };
-
-  const isCarreta = form.tipo_veiculo === 'Carreta';
 
   return (
     <form className={`placa-form ${embedded ? 'embedded-form' : ''}`} onSubmit={handleSubmit}>
@@ -63,6 +112,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           <label>
             Placa *
             <input required value={form.placa} onChange={(event) => updateField('placa', event.target.value)} placeholder="Digite a placa" />
+            <small className="field-hint">Digite uma placa já usada para preencher automaticamente.</small>
           </label>
         )}
 
@@ -71,6 +121,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
             <label>
               Placa do cavalo *
               <input required value={form.placa_cavalo} onChange={(event) => updateField('placa_cavalo', event.target.value)} placeholder="Digite a placa do cavalo" />
+              <small className="field-hint">Digite uma placa já usada para preencher automaticamente.</small>
             </label>
             <label>
               Placa da carreta *
@@ -78,6 +129,8 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
             </label>
           </>
         )}
+
+        {lookupStatus && <div className="auto-fill-note full-width">{lookupStatus}</div>}
 
         <label>
           Motorista *

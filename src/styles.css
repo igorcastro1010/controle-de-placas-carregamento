@@ -483,6 +483,7 @@ textarea {
 
 .tabs {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
   background: #eef2f6;
   border-radius: 8px;
@@ -573,6 +574,23 @@ textarea {
 
 .wide-filter {
   min-width: 260px;
+}
+
+.field-hint {
+  color: #667085;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.auto-fill-note {
+  border: 1px solid #abefc6;
+  border-radius: 8px;
+  background: #ecfdf3;
+  color: #027a48;
+  font-size: 0.84rem;
+  font-weight: 800;
+  padding: 10px 12px;
 }
 
 .operation-section {
@@ -1612,6 +1630,91 @@ td {
   overflow-wrap: anywhere;
 }
 
+.vehicle-registry {
+  display: grid;
+  gap: 14px;
+}
+
+.vehicle-registry-filters {
+  display: grid;
+  grid-template-columns: 180px repeat(2, minmax(180px, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.vehicle-registry-list {
+  display: grid;
+  gap: 10px;
+}
+
+.vehicle-registry-card {
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.055);
+  overflow: hidden;
+}
+
+.vehicle-registry-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.vehicle-registry-card h3 {
+  margin: 0;
+  color: #101828;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+}
+
+.vehicle-registry-card small,
+.registry-last-use {
+  color: #667085;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.registry-last-use {
+  white-space: nowrap;
+}
+
+.vehicle-registry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.vehicle-registry-grid > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 9px;
+}
+
+.vehicle-registry-grid span {
+  color: #667085;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.vehicle-registry-grid strong {
+  color: #344054;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1280px) {
   .report-grid {
     grid-template-columns: repeat(4, minmax(150px, 1fr));
@@ -1626,8 +1729,13 @@ td {
   }
 
   .period-summary-grid,
-  .period-record-grid {
+  .period-record-grid,
+  .vehicle-registry-grid {
     grid-template-columns: repeat(3, minmax(150px, 1fr));
+  }
+
+  .vehicle-registry-filters {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
   }
 
   .plate-card-body {
@@ -1728,14 +1836,21 @@ td {
   .filters,
   .period-filter-panel,
   .period-summary-grid,
-  .period-record-grid {
+  .period-record-grid,
+  .vehicle-registry-filters,
+  .vehicle-registry-grid {
     grid-template-columns: 1fr;
   }
 
   .period-list-header,
-  .period-record-card header {
+  .period-record-card header,
+  .vehicle-registry-card header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .registry-last-use {
+    white-space: normal;
   }
 
   .plate-card-header {

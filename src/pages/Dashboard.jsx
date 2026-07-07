@@ -11,6 +11,7 @@ import PeriodReport from '../components/PeriodReport';
 import PriorityLocalModal from '../components/PriorityLocalModal';
 import ReopenPlacaModal from '../components/ReopenPlacaModal';
 import ReportCards from '../components/ReportCards';
+import VehicleRegistry from '../components/VehicleRegistry';
 import {
   createPlaca,
   currentTime,
@@ -435,7 +436,8 @@ export default function Dashboard({ user, onLogout }) {
     setEditError('');
     try {
       const original = editingItem;
-      const updated = await updatePlacaCadastro(id, payload);
+      const updated = await updatePlacaCadastro(id, payload, user);
+      const changeDetails = describeCadastroChanges(original, updated) || 'Cadastro revisado sem alteração detectada nos campos principais.';
       await safeRegisterAudit({
         placaId: id,
         acao: 'Edição',
@@ -444,6 +446,15 @@ export default function Dashboard({ user, onLogout }) {
         ordemAnterior: original?.ordem,
         ordemNova: updated.ordem,
         detalhes: describeCadastroChanges(original, updated) || 'Cadastro revisado sem alteração detectada nos campos principais.',
+      });
+      await safeRegisterAudit({
+        placaId: id,
+        acao: 'Cadastro do veículo atualizado',
+        statusAnterior: original?.status,
+        statusNovo: updated.status,
+        ordemAnterior: original?.ordem,
+        ordemNova: updated.ordem,
+        detalhes: changeDetails,
       });
       if (!original?.entrega_local && updated.entrega_local) {
         await safeRegisterAudit({
@@ -638,6 +649,7 @@ export default function Dashboard({ user, onLogout }) {
   const tableTitle = useMemo(() => {
     if (activeTab === 'fila') return 'Fila de Chamada';
     if (activeTab === 'relatorio') return 'Relatório por período';
+    if (activeTab === 'veiculos') return 'Cadastro de Veículos';
     return 'Finalizados e Cancelados';
   }, [activeTab]);
 
@@ -696,10 +708,17 @@ export default function Dashboard({ user, onLogout }) {
             <button className={activeTab === 'relatorio' ? 'active' : ''} onClick={() => setActiveTab('relatorio')} type="button">
               Relatório
             </button>
+            {canManageQueue && (
+              <button className={activeTab === 'veiculos' ? 'active' : ''} onClick={() => setActiveTab('veiculos')} type="button">
+                Cadastro de Veículos
+              </button>
+            )}
           </div>
         </div>
 
-        {activeTab === 'relatorio' ? (
+        {activeTab === 'veiculos' && canManageQueue ? (
+          <VehicleRegistry />
+        ) : activeTab === 'relatorio' ? (
           <PeriodReport refreshSignal={periodRefreshKey} />
         ) : activeTab === 'fila' ? (
           <>

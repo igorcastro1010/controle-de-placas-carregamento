@@ -102,6 +102,39 @@ function normalizeVehiclePayload(payload) {
   };
 }
 
+function buildVehicleRegistrationPayload(source = {}) {
+  const tipoVeiculo = source.tipo_veiculo || 'Truck';
+  const isCarreta = tipoVeiculo === 'Carreta';
+  const placaBase = isCarreta ? source.placa_cavalo || source.placa : source.placa;
+
+  return {
+    tipo_veiculo: tipoVeiculo,
+    placa: toUpperText(placaBase),
+    placa_cavalo: isCarreta ? toUpperOrNull(source.placa_cavalo || source.placa) : null,
+    placa_carreta: isCarreta ? toUpperOrNull(source.placa_carreta) : null,
+    motorista: toUpperText(source.motorista),
+    telefone: toUpperText(source.telefone),
+    rota_1: toUpperOrNull(source.rota_1),
+    rota_2: toUpperOrNull(source.rota_2),
+    rota_3: toUpperOrNull(source.rota_3),
+    observacao_padrao: toUpperOrNull(source.observacao_padrao || source.ocorrido),
+  };
+}
+
+function findVehicleRegistrationInList(items = [], plate) {
+  const normalizedPlate = normalizePlate(plate);
+  if (!normalizedPlate) return null;
+
+  return (
+    items.find((item) =>
+      [item.placa, item.placa_cavalo]
+        .map(normalizePlate)
+        .filter(Boolean)
+        .includes(normalizedPlate)
+    ) || null
+  );
+}
+
 async function ensurePlateIsNotDuplicated(payload, ignoreId = '') {
   const isCarreta = payload.tipo_veiculo === 'Carreta';
   const candidatePlates = (isCarreta ? [payload.placa, payload.placa_cavalo, payload.placa_carreta] : [payload.placa]).map(normalizePlate).filter(Boolean);
@@ -116,6 +149,80 @@ async function ensurePlateIsNotDuplicated(payload, ignoreId = '') {
 
   if (hasDuplicate) {
     throw new Error(isCarreta ? 'Já existe uma placa ativa com esse cavalo ou carreta.' : 'Essa placa já está cadastrada na fila.');
+  }
+}
+
+export async function findVeiculoMotoristaByPlate(plate) {
+  const normalizedPlate = normalizePlate(plate);
+  if (!normalizedPlate || normalizedPlate.length < 3) return null;
+
+  const { data, error } = await supabase.from('veiculos_motoristas').select('*').order('ultimo_uso_em', { ascending: false, nullsFirst: false });
+  if (error) throw error;
+  return findVehicleRegistrationInList(data || [], normalizedPlate);
+}
+
+export async function fetchVeiculosMotoristas(filters = {}) {
+  let query = supabase.from('veiculos_motoristas').select('*').order('ultimo_uso_em', { ascending: false, nullsFirst: false }).order('updated_at', { ascending: false });
+
+  if (filters.motorista) query = query.ilike('motorista', `%${filters.motorista}%`);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  if (!filters.placa) return data || [];
+
+  const normalizedPlate = normalizePlate(filters.placa);
+  return (data || []).filter((item) => [item.placa, item.placa_cavalo, item.placa_carreta].map(normalizePlate).some((plate) => plate.includes(normalizedPlate)));
+}
+
+export async function syncVeiculoMotorista(source, user) {
+  const recordPayload = buildVehicleRegistrationPayload(source);
+  if (!recordPayload.placa) return null;
+
+  const { data: existingItems, error: fetchError } = await supabase.from('veiculos_motoristas').select('*');
+  if (fetchError) throw fetchError;
+
+  const existing = findVehicleRegistrationInList(existingItems || [], recordPayload.placa);
+  const now = new Date().toISOString();
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('veiculos_motoristas')
+      .update({
+        ...recordPayload,
+        ultimo_uso_em: now,
+        atualizado_por: user?.email || null,
+        atualizado_por_id: user?.id || null,
+      })
+      .eq('id', existing.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from('veiculos_motoristas')
+    .insert({
+      ...recordPayload,
+      ultimo_uso_em: now,
+      criado_por: user?.email || null,
+      criado_por_id: user?.id || null,
+      atualizado_por: user?.email || null,
+      atualizado_por_id: user?.id || null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function safeSyncVeiculoMotorista(source, user) {
+  try {
+    return await syncVeiculoMotorista(source, user);
+  } catch (err) {
+    console.warn('Não foi possível sincronizar o cadastro do veículo.', err);
+    return null;
   }
 }
 
@@ -320,13 +427,16 @@ export async function createPlaca(payload, user) {
 
   const { data, error } = await supabase.from('placas').insert(record).select().single();
   if (error) throw error;
+  await safeSyncVeiculoMotorista(data, user);
   return data;
 }
 
-export async function updatePlacaCadastro(id, payload) {
+export async function updatePlacaCadastro(id, payload, user) {
   const recordPayload = normalizeVehiclePayload(payload);
   await ensurePlateIsNotDuplicated(recordPayload, id);
-  return updatePlaca(id, recordPayload);
+  const updated = await updatePlaca(id, recordPayload);
+  await safeSyncVeiculoMotorista(updated, user);
+  return updated;
 }
 
 export async function updatePlaca(id, payload) {
