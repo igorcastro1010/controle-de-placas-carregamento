@@ -106,12 +106,18 @@ function buildVehicleRegistrationPayload(source = {}) {
   const tipoVeiculo = source.tipo_veiculo || 'Truck';
   const isCarreta = tipoVeiculo === 'Carreta';
   const placaBase = isCarreta ? source.placa_cavalo || source.placa : source.placa;
+  const placa = toUpperText(placaBase);
+  const placaCavalo = isCarreta ? toUpperOrNull(source.placa_cavalo || source.placa) : null;
+  const placaCarreta = isCarreta ? toUpperOrNull(source.placa_carreta) : null;
 
   return {
     tipo_veiculo: tipoVeiculo,
-    placa: toUpperText(placaBase),
-    placa_cavalo: isCarreta ? toUpperOrNull(source.placa_cavalo || source.placa) : null,
-    placa_carreta: isCarreta ? toUpperOrNull(source.placa_carreta) : null,
+    placa,
+    placa_normalizada: normalizePlate(placa),
+    placa_cavalo: placaCavalo,
+    placa_cavalo_normalizada: placaCavalo ? normalizePlate(placaCavalo) : null,
+    placa_carreta: placaCarreta,
+    placa_carreta_normalizada: placaCarreta ? normalizePlate(placaCarreta) : null,
     motorista: toUpperText(source.motorista),
     telefone: toUpperText(source.telefone),
     rota_1: toUpperOrNull(source.rota_1),
@@ -127,13 +133,20 @@ function findVehicleRegistrationInList(items = [], plate) {
 
   return (
     items.find((item) =>
-      [item.placa, item.placa_cavalo]
+      [item.placa_normalizada, item.placa_cavalo_normalizada, item.placa_carreta_normalizada, item.placa, item.placa_cavalo, item.placa_carreta]
         .map(normalizePlate)
         .filter(Boolean)
         .includes(normalizedPlate)
     ) || null
   );
 }
+
+const vehiclePlateOrFilter = (plates) =>
+  plates
+    .map(normalizePlate)
+    .filter(Boolean)
+    .flatMap((plate) => [`placa_normalizada.eq.${plate}`, `placa_cavalo_normalizada.eq.${plate}`, `placa_carreta_normalizada.eq.${plate}`])
+    .join(',');
 
 async function ensurePlateIsNotDuplicated(payload, ignoreId = '') {
   const isCarreta = payload.tipo_veiculo === 'Carreta';
@@ -156,9 +169,15 @@ export async function findVeiculoMotoristaByPlate(plate) {
   const normalizedPlate = normalizePlate(plate);
   if (!normalizedPlate || normalizedPlate.length < 3) return null;
 
-  const { data, error } = await supabase.from('veiculos_motoristas').select('*').order('ultimo_uso_em', { ascending: false, nullsFirst: false });
+  const { data, error } = await supabase
+    .from('veiculos_motoristas')
+    .select('*')
+    .or(vehiclePlateOrFilter([normalizedPlate]))
+    .order('ultimo_uso_em', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
-  return findVehicleRegistrationInList(data || [], normalizedPlate);
+  return data || null;
 }
 
 export async function fetchVeiculosMotoristas(filters = {}) {
@@ -172,14 +191,15 @@ export async function fetchVeiculosMotoristas(filters = {}) {
   if (!filters.placa) return data || [];
 
   const normalizedPlate = normalizePlate(filters.placa);
-  return (data || []).filter((item) => [item.placa, item.placa_cavalo, item.placa_carreta].map(normalizePlate).some((plate) => plate.includes(normalizedPlate)));
+  return (data || []).filter((item) => [item.placa_normalizada, item.placa_cavalo_normalizada, item.placa_carreta_normalizada, item.placa, item.placa_cavalo, item.placa_carreta].map(normalizePlate).some((plate) => plate.includes(normalizedPlate)));
 }
 
-export async function syncVeiculoMotorista(source, user) {
+export async function salvarOuAtualizarVeiculoMotorista(source, user) {
   const recordPayload = buildVehicleRegistrationPayload(source);
   if (!recordPayload.placa) return null;
+  const lookupFilter = vehiclePlateOrFilter([recordPayload.placa_normalizada, recordPayload.placa_cavalo_normalizada, recordPayload.placa_carreta_normalizada]);
 
-  const { data: existingItems, error: fetchError } = await supabase.from('veiculos_motoristas').select('*');
+  const { data: existingItems, error: fetchError } = await supabase.from('veiculos_motoristas').select('*').or(lookupFilter).limit(1);
   if (fetchError) throw fetchError;
 
   const existing = findVehicleRegistrationInList(existingItems || [], recordPayload.placa);
@@ -219,7 +239,7 @@ export async function syncVeiculoMotorista(source, user) {
 
 async function safeSyncVeiculoMotorista(source, user) {
   try {
-    return await syncVeiculoMotorista(source, user);
+    return await salvarOuAtualizarVeiculoMotorista(source, user);
   } catch (err) {
     console.warn('Não foi possível sincronizar o cadastro do veículo.', err);
     return null;

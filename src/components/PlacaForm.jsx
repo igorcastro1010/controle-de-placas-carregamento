@@ -22,6 +22,7 @@ const upperInputFields = new Set(['placa', 'placa_cavalo', 'placa_carreta', 'mot
 export default function PlacaForm({ onSubmit, loading, error, embedded = false }) {
   const [form, setForm] = useState(initialForm);
   const [lookupStatus, setLookupStatus] = useState('');
+  const [autoFilled, setAutoFilled] = useState(false);
 
   const updateField = (field, value) =>
     setForm((current) => ({
@@ -36,6 +37,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
     const normalizedLookupPlate = normalizePlate(lookupPlate);
     if (normalizedLookupPlate.length < 3) {
       setLookupStatus('');
+      setAutoFilled(false);
       return undefined;
     }
 
@@ -44,6 +46,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
         const savedRegistration = await findVeiculoMotoristaByPlate(normalizedLookupPlate);
         if (!savedRegistration) {
           setLookupStatus('');
+          setAutoFilled(false);
           return;
         }
 
@@ -68,10 +71,12 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
             ocorrido: savedRegistration.observacao_padrao ? toUpperText(savedRegistration.observacao_padrao) : current.ocorrido,
           };
         });
-        setLookupStatus('Cadastro encontrado: dados preenchidos.');
+        setLookupStatus('Cadastro encontrado: dados preenchidos automaticamente.');
+        setAutoFilled(true);
       } catch (err) {
-        console.warn('Não foi possível buscar cadastro salvo do veículo.', err);
+        console.warn('Nao foi possivel buscar cadastro salvo do veiculo.', err);
         setLookupStatus('');
+        setAutoFilled(false);
       }
     }, 400);
 
@@ -90,6 +95,20 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
     if (success !== false) setForm(initialForm);
   };
 
+  const clearAutoFilledData = () => {
+    setForm((current) => ({
+      ...current,
+      motorista: '',
+      telefone: '',
+      rota_1: '',
+      rota_2: '',
+      rota_3: '',
+      ocorrido: '',
+    }));
+    setLookupStatus('');
+    setAutoFilled(false);
+  };
+
   return (
     <form className={`placa-form ${embedded ? 'embedded-form' : ''}`} onSubmit={handleSubmit}>
       {!embedded && (
@@ -101,7 +120,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
 
       <div className="form-grid">
         <label>
-          Tipo de veículo *
+          Tipo de veiculo *
           <select required value={form.tipo_veiculo} onChange={(event) => updateField('tipo_veiculo', event.target.value)}>
             <option value="Truck">Truck</option>
             <option value="Carreta">Carreta</option>
@@ -112,30 +131,34 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           <label>
             Placa *
             <input required value={form.placa} onChange={(event) => updateField('placa', event.target.value)} placeholder="Digite a placa" />
-            <small className="field-hint">Digite uma placa já usada para preencher automaticamente.</small>
+            <small className="field-hint">Digite uma placa ja usada para preencher automaticamente.</small>
           </label>
         )}
 
         {isCarreta && (
-          <>
-            <label>
-              Placa do cavalo *
-              <input required value={form.placa_cavalo} onChange={(event) => updateField('placa_cavalo', event.target.value)} placeholder="Digite a placa do cavalo" />
-              <small className="field-hint">Digite uma placa já usada para preencher automaticamente.</small>
-            </label>
-            <label>
-              Placa da carreta *
-              <input required value={form.placa_carreta} onChange={(event) => updateField('placa_carreta', event.target.value)} placeholder="Digite a placa da carreta" />
-            </label>
-          </>
+          <label>
+            Placa do cavalo *
+            <input required value={form.placa_cavalo} onChange={(event) => updateField('placa_cavalo', event.target.value)} placeholder="Digite a placa do cavalo" />
+            <small className="field-hint">Digite uma placa ja usada para preencher automaticamente.</small>
+          </label>
         )}
-
-        {lookupStatus && <div className="auto-fill-note full-width">{lookupStatus}</div>}
 
         <label>
           Motorista *
           <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} placeholder="Digite o nome do motorista" />
         </label>
+
+        {lookupStatus && (
+          <div className="auto-fill-note full-width">
+            <span>{lookupStatus}</span>
+            {autoFilled && (
+              <button className="text-button" type="button" onClick={clearAutoFilledData}>
+                Limpar dados preenchidos
+              </button>
+            )}
+          </div>
+        )}
+
         <label>
           Telefone *
           <input required value={form.telefone} onChange={(event) => updateField('telefone', event.target.value)} placeholder="(00) 00000-0000" />
@@ -153,10 +176,17 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           <input value={form.rota_3} onChange={(event) => updateField('rota_3', event.target.value)} placeholder="Opcional" />
         </label>
 
-        <section className="operation-section full-width" aria-label="Tipo de operação">
+        {isCarreta && (
+          <label>
+            Placa da carreta *
+            <input required value={form.placa_carreta} onChange={(event) => updateField('placa_carreta', event.target.value)} placeholder="Digite a placa da carreta" />
+          </label>
+        )}
+
+        <section className="operation-section full-width" aria-label="Tipo de operacao">
           <div>
-            <span className="operation-title">Tipo de operação</span>
-            <p>Marque apenas quando essa condição fizer parte da operação do motorista.</p>
+            <span className="operation-title">Tipo de operacao</span>
+            <p>Marque apenas quando essa condicao fizer parte da operacao do motorista.</p>
           </div>
           <label className="checkbox-field operation-checkbox">
             <input type="checkbox" checked={form.entrega_local} onChange={(event) => updateField('entrega_local', event.target.checked)} />
@@ -176,7 +206,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
 
         <label className="full-width">
           Ocorrido
-          <textarea value={form.ocorrido} onChange={(event) => updateField('ocorrido', event.target.value)} placeholder="Observações importantes" rows="3" />
+          <textarea value={form.ocorrido} onChange={(event) => updateField('ocorrido', event.target.value)} placeholder="Observacoes importantes" rows="3" />
         </label>
       </div>
 

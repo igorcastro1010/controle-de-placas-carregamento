@@ -584,6 +584,10 @@ textarea {
 }
 
 .auto-fill-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   border: 1px solid #abefc6;
   border-radius: 8px;
   background: #ecfdf3;
@@ -591,6 +595,10 @@ textarea {
   font-size: 0.84rem;
   font-weight: 800;
   padding: 10px 12px;
+}
+
+.auto-fill-note .text-button {
+  flex: 0 0 auto;
 }
 
 .operation-section {
