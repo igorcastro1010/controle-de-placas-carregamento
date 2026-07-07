@@ -5,6 +5,7 @@ import {
   ArrowUp,
   Check,
   ChevronDown,
+  CheckCircle2,
   History,
   Loader,
   Megaphone,
@@ -138,10 +139,6 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
             <Megaphone size={14} />
             Chamado
           </ActionButton>
-          <ActionButton className="danger-soft" title="Cancelar" disabled={disabled} onClick={() => onAction(item, 'cancelar')}>
-            <X size={14} />
-            Cancelar
-          </ActionButton>
         </div>
       )}
 
@@ -195,8 +192,12 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                   Carregando
                 </button>
                 <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'finalizar'))}>
-                  <Check size={14} />
+                  <CheckCircle2 size={14} />
                   Finalizar
+                </button>
+                <button className="menu-danger" type="button" onClick={() => handleMenuClick(() => onAction(item, 'cancelar'))}>
+                  <X size={14} />
+                  Cancelar
                 </button>
               </>
             )}

@@ -130,9 +130,12 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
     <article className="plate-card">
       <header className="plate-card-header">
         <div className="plate-card-title">
-          <div className="plate-card-main">
-            <span className="queue-order">#{visualOrder}</span>
-            <strong>{item.placa}</strong>
+          <div className="plate-card-topline">
+            <div className="plate-card-main">
+              <span className="queue-order">#{visualOrder}</span>
+              <strong>{item.placa}</strong>
+            </div>
+            <StatusBadge status={item.status} />
           </div>
           <VehicleSummary item={item} />
           <div className="plate-card-driver">
@@ -144,7 +147,6 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
             {showLastAction && <small>Última ação {relativeTime(updatedAt)}</small>}
           </div>
         </div>
-        <StatusBadge status={item.status} />
       </header>
 
       <div className="plate-card-body">
