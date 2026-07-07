@@ -6,6 +6,12 @@ const emptyForm = {
   placa: '',
   placa_cavalo: '',
   placa_carreta: '',
+  entrega_local: false,
+  retorno_local: false,
+  prioridade_local: false,
+  prioridade_motivo: '',
+  prioridade_por: '',
+  prioridade_em: '',
   motorista: '',
   telefone: '',
   rota_1: '',
@@ -21,6 +27,12 @@ function formFromItem(item) {
     placa: item.placa || '',
     placa_cavalo: item.placa_cavalo || '',
     placa_carreta: item.placa_carreta || '',
+    entrega_local: Boolean(item.entrega_local),
+    retorno_local: Boolean(item.retorno_local),
+    prioridade_local: Boolean(item.prioridade_local),
+    prioridade_motivo: item.prioridade_motivo || '',
+    prioridade_por: item.prioridade_por || '',
+    prioridade_em: item.prioridade_em || '',
     motorista: item.motorista || '',
     telefone: item.telefone || '',
     rota_1: item.rota_1 || '',
@@ -115,6 +127,19 @@ export default function EditPlacaModal({ item, saving, error, onClose, onSave })
               Rota 3
               <input value={form.rota_3} onChange={(event) => updateField('rota_3', event.target.value)} />
             </label>
+            <section className="operation-section full-width" aria-label="Tipo de operação">
+              <div>
+                <span className="operation-title">Tipo de operação</span>
+                <p>A prioridade local deve ser alterada pelo menu Ações.</p>
+              </div>
+              <label className="checkbox-field operation-checkbox">
+                <input type="checkbox" checked={form.entrega_local} onChange={(event) => updateField('entrega_local', event.target.checked)} />
+                <span>
+                  Entrega local
+                  <small>Marque quando o motorista estiver fazendo entrega local dentro do estado.</small>
+                </span>
+              </label>
+            </section>
             <label className="full-width">
               Ocorrido
               <textarea value={form.ocorrido} onChange={(event) => updateField('ocorrido', event.target.value)} rows="3" />

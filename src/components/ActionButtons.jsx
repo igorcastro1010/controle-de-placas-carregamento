@@ -13,6 +13,8 @@ import {
   Phone,
   PhoneOff,
   RotateCcw,
+  Star,
+  StarOff,
   X,
 } from 'lucide-react';
 
@@ -24,7 +26,7 @@ function ActionButton({ className = 'neutral', children, ...props }) {
   );
 }
 
-export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onReopen }) {
+export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onReopen, onPriority }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState({});
   const menuRef = useRef(null);
@@ -54,7 +56,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
     }
 
     const width = 230;
-    const itemCount = isClosed ? (canManageQueue ? 2 : 0) : 6 + (canManageQueue ? 2 : 0) + (canViewAudit ? 1 : 0);
+    const itemCount = isClosed ? (canManageQueue ? 2 : 0) : 6 + (canManageQueue ? 3 : 0) + (canViewAudit ? 1 : 0);
     const estimatedHeight = Math.min(420, itemCount * 39 + 18);
     const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -166,6 +168,10 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                 )}
                 {canManageQueue && (
                   <>
+                    <button type="button" onClick={() => handleMenuClick(() => onPriority?.(item))}>
+                      {item.prioridade_local ? <StarOff size={14} /> : <Star size={14} />}
+                      {item.prioridade_local ? 'Remover prioridade' : 'Prioridade local'}
+                    </button>
                     <button type="button" disabled={isFirst} onClick={() => handleMenuClick(() => onMove(item, index, 'up'))}>
                       <ArrowUp size={14} />
                       Subir

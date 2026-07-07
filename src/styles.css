@@ -144,6 +144,18 @@ textarea {
   font-weight: 800;
 }
 
+.checkbox-field span {
+  display: grid;
+  gap: 3px;
+}
+
+.checkbox-field small {
+  color: #667085;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .brand-logo-wrap {
   display: flex;
   align-items: center;
@@ -452,7 +464,7 @@ textarea {
 }
 
 .filters {
-  grid-template-columns: 120px repeat(5, minmax(140px, 1fr)) auto;
+  grid-template-columns: 120px repeat(auto-fit, minmax(150px, 1fr)) auto;
   align-items: end;
   background: #f8fafc;
   border: 1px solid #e3e8ef;
@@ -463,6 +475,37 @@ textarea {
 
 .wide-filter {
   min-width: 260px;
+}
+
+.operation-section {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #e3e8ef;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.operation-title {
+  display: block;
+  color: #344054;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.operation-section p {
+  margin: 3px 0 0;
+  color: #667085;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.operation-checkbox {
+  align-items: flex-start;
+  border: 1px solid #edf1f5;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px;
 }
 
 .filter-title {
@@ -605,10 +648,37 @@ td {
 }
 
 .vehicle-summary {
-  display: block;
+  display: grid;
+  gap: 6px;
   color: #475467;
   font-size: 0.82rem;
   font-weight: 900;
+}
+
+.local-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.local-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+.local-badge.priority {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
 }
 
 .plate-card-driver span {
@@ -1256,7 +1326,7 @@ td {
 
 .period-filter-panel {
   display: grid;
-  grid-template-columns: 120px repeat(6, minmax(140px, 1fr)) auto;
+  grid-template-columns: 120px repeat(auto-fit, minmax(150px, 1fr)) auto;
   align-items: end;
   gap: 12px;
   border: 1px solid #e3e8ef;
@@ -1343,6 +1413,16 @@ td {
 .period-record-card small {
   color: #475467;
   font-weight: 800;
+}
+
+.period-record-card .local-badge-row,
+.details-record-header .local-badge-row {
+  margin-top: 8px;
+}
+
+.priority-form {
+  display: grid;
+  gap: 14px;
 }
 
 .period-record-grid {

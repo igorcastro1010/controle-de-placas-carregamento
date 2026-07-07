@@ -19,6 +19,8 @@ const initialFilters = {
   tipo_veiculo: '',
   search: '',
   responsavel: '',
+  entrega_local: '',
+  prioridade_local: '',
 };
 
 function ReportMetric({ label, value }) {
@@ -78,7 +80,16 @@ export default function PeriodReport() {
       else vehicleCounts.Truck += 1;
     });
 
-    return { statusCounts, vehicleCounts, total: items.length };
+    const localCounts = items.reduce(
+      (acc, item) => {
+        if (item.entrega_local) acc.entregaLocal += 1;
+        if (item.prioridade_local) acc.prioridadeLocal += 1;
+        return acc;
+      },
+      { entregaLocal: 0, prioridadeLocal: 0 }
+    );
+
+    return { statusCounts, vehicleCounts, localCounts, total: items.length };
   }, [items]);
 
   const updateFilter = (field, value) => setFilters((current) => ({ ...current, [field]: value }));
@@ -126,6 +137,22 @@ export default function PeriodReport() {
           Responsável
           <input value={filters.responsavel} onChange={(event) => updateFilter('responsavel', event.target.value)} placeholder="Buscar responsável" />
         </label>
+        <label>
+          Entrega local
+          <select value={filters.entrega_local} onChange={(event) => updateFilter('entrega_local', event.target.value)}>
+            <option value="">Todos</option>
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+          </select>
+        </label>
+        <label>
+          Prioridade local
+          <select value={filters.prioridade_local} onChange={(event) => updateFilter('prioridade_local', event.target.value)}>
+            <option value="">Todos</option>
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+          </select>
+        </label>
         <button className="icon-text secondary" type="button" onClick={clearFilters}>
           Limpar filtros
         </button>
@@ -140,6 +167,8 @@ export default function PeriodReport() {
         ))}
         <ReportMetric label="Truck" value={summary.vehicleCounts.Truck} />
         <ReportMetric label="Carreta" value={summary.vehicleCounts.Carreta} />
+        <ReportMetric label="Total entrega local" value={summary.localCounts.entregaLocal} />
+        <ReportMetric label="Total prioridade local" value={summary.localCounts.prioridadeLocal} />
       </div>
 
       <div className="period-list-header">
@@ -167,6 +196,12 @@ export default function PeriodReport() {
                     {item.tipo_veiculo || 'Truck'}
                     {item.tipo_veiculo === 'Carreta' ? ` | Cavalo: ${item.placa_cavalo || '-'} | Carreta: ${item.placa_carreta || '-'}` : ` | Placa: ${item.placa || '-'}`}
                   </small>
+                  {(item.entrega_local || item.prioridade_local || item.retorno_local) && (
+                    <span className="local-badge-row">
+                      {item.entrega_local && <span className="local-badge">Entrega local</span>}
+                      {(item.prioridade_local || item.retorno_local) && <span className="local-badge priority">Prioridade local</span>}
+                    </span>
+                  )}
                 </div>
                 <StatusBadge status={item.status} />
               </header>

@@ -63,16 +63,31 @@ export const isStatusEmAndamento = (status) => STATUS_EM_ANDAMENTO.some((progres
 
 export const isActiveStatus = (status) => !ACTIVE_EXCLUDED_STATUSES.some((inactiveStatus) => normalizeStatus(inactiveStatus) === normalizeStatus(status));
 
+export const sortByPriorityAndOrder = (items = []) =>
+  [...items].sort((a, b) => {
+    const priorityDiff = Number(Boolean(b.prioridade_local)) - Number(Boolean(a.prioridade_local));
+    if (priorityDiff !== 0) return priorityDiff;
+    return (a.ordem || 0) - (b.ordem || 0);
+  });
+
 function normalizeVehiclePayload(payload) {
   const tipoVeiculo = payload.tipo_veiculo || 'Truck';
   const isCarreta = tipoVeiculo === 'Carreta';
   const placaBase = isCarreta ? payload.placa_cavalo : payload.placa;
+  const retornoLocal = Boolean(payload.retorno_local);
+  const prioridadeLocal = Boolean(payload.prioridade_local || retornoLocal);
 
   return {
     tipo_veiculo: tipoVeiculo,
     placa: placaBase.trim().toUpperCase(),
     placa_cavalo: isCarreta ? payload.placa_cavalo?.trim().toUpperCase() || null : null,
     placa_carreta: isCarreta ? payload.placa_carreta?.trim().toUpperCase() || null : null,
+    entrega_local: Boolean(payload.entrega_local),
+    retorno_local: retornoLocal,
+    prioridade_local: prioridadeLocal,
+    prioridade_motivo: prioridadeLocal ? payload.prioridade_motivo?.trim() || 'Retorno de entrega local' : null,
+    prioridade_por: prioridadeLocal ? payload.prioridade_por || null : null,
+    prioridade_em: prioridadeLocal ? payload.prioridade_em || null : null,
     motorista: payload.motorista.trim(),
     telefone: payload.telefone.trim(),
     rota_1: payload.rota_1?.trim() || null,
@@ -160,6 +175,10 @@ export async function fetchPlacas({ finalizados = false, filters = {}, scope = '
   if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
   if (filters.data) query = query.eq('data', filters.data);
   if (filters.busca) query = query.or(`placa.ilike.%${filters.busca}%,placa_cavalo.ilike.%${filters.busca}%,placa_carreta.ilike.%${filters.busca}%,motorista.ilike.%${filters.busca}%`);
+  if (filters.entrega_local === 'sim') query = query.eq('entrega_local', true);
+  if (filters.entrega_local === 'nao') query = query.eq('entrega_local', false);
+  if (filters.prioridade_local === 'sim') query = query.eq('prioridade_local', true);
+  if (filters.prioridade_local === 'nao') query = query.eq('prioridade_local', false);
 
   query = query.order(finalizados ? 'updated_at' : 'ordem', { ascending: !finalizados });
 
@@ -175,7 +194,7 @@ export async function fetchPlacas({ finalizados = false, filters = {}, scope = '
     return data || [];
   }
 
-  return (data || []).filter((item) => isStatusFilaAtual(item.status));
+  return sortByPriorityAndOrder((data || []).filter((item) => isStatusFilaAtual(item.status)));
 }
 
 export async function fetchTodayReport() {
@@ -219,6 +238,10 @@ export async function fetchPeriodReport(filters = {}) {
   if (filters.status) query = query.eq('status', filters.status);
   if (filters.tipo_veiculo) query = query.eq('tipo_veiculo', filters.tipo_veiculo);
   if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
+  if (filters.entrega_local === 'sim') query = query.eq('entrega_local', true);
+  if (filters.entrega_local === 'nao') query = query.eq('entrega_local', false);
+  if (filters.prioridade_local === 'sim') query = query.eq('prioridade_local', true);
+  if (filters.prioridade_local === 'nao') query = query.eq('prioridade_local', false);
 
   query = query.order('data', { ascending: false }).order('ordem', { ascending: true });
 
@@ -260,15 +283,31 @@ export async function createPlaca(payload, user) {
   const recordPayload = normalizeVehiclePayload(payload);
   await ensurePlateIsNotDuplicated(recordPayload);
 
-  const { data: lastItem, error: orderError } = await supabase.from('placas').select('ordem').order('ordem', { ascending: false }).limit(1).maybeSingle();
-  if (orderError) throw orderError;
+  let nextOrder;
+  if (recordPayload.prioridade_local) {
+    const { data: priorityItems, error: priorityOrderError } = await supabase
+      .from('placas')
+      .select('ordem, status, prioridade_local')
+      .eq('prioridade_local', true)
+      .in('status', STATUS_FILA_ATUAL)
+      .order('ordem', { ascending: true })
+      .limit(1);
+    if (priorityOrderError) throw priorityOrderError;
+    nextOrder = priorityItems?.length ? (priorityItems[0].ordem || 0) - 1 : 0;
+    recordPayload.prioridade_por = user.email;
+    recordPayload.prioridade_em = new Date().toISOString();
+  } else {
+    const { data: lastItem, error: orderError } = await supabase.from('placas').select('ordem').order('ordem', { ascending: false }).limit(1).maybeSingle();
+    if (orderError) throw orderError;
+    nextOrder = (lastItem?.ordem || 0) + 1;
+  }
 
   const now = new Date();
   const record = {
     ...recordPayload,
     data: now.toISOString().slice(0, 10),
     hora: currentTime(),
-    ordem: (lastItem?.ordem || 0) + 1,
+    ordem: nextOrder,
     status: 'Aguardando',
     responsavel_id: user.id,
     responsavel_email: user.email,
@@ -300,6 +339,41 @@ export async function moveToEnd(item) {
     .reduce((maxOrder, activeItem) => Math.max(maxOrder, activeItem.ordem || 0), item.ordem || 0);
 
   return updatePlaca(item.id, { ordem: maxQueueOrder + 1 });
+}
+
+export async function addPrioridadeLocal(item, user, reason = 'Retorno de entrega local') {
+  const { data: priorityItems, error: orderError } = await supabase
+    .from('placas')
+    .select('id, ordem, status, prioridade_local')
+    .eq('prioridade_local', true)
+    .in('status', STATUS_FILA_ATUAL)
+    .order('ordem', { ascending: true })
+    .limit(1);
+  if (orderError) throw orderError;
+
+  const nextOrder = priorityItems?.length ? (priorityItems[0].ordem || 0) - 1 : 0;
+  return updatePlaca(item.id, {
+    prioridade_local: true,
+    retorno_local: true,
+    prioridade_motivo: reason.trim() || 'Retorno de entrega local',
+    prioridade_por: user.email,
+    prioridade_em: new Date().toISOString(),
+    ordem: nextOrder,
+  });
+}
+
+export async function removePrioridadeLocal(item) {
+  const { data: activeItems, error: orderError } = await supabase.from('placas').select('id, ordem, status').not('status', 'in', inactiveStatusFilter()).order('ordem', { ascending: false });
+  if (orderError) throw orderError;
+
+  const maxQueueOrder = (activeItems || [])
+    .filter((activeItem) => isStatusFilaAtual(activeItem.status))
+    .reduce((maxOrder, activeItem) => Math.max(maxOrder, activeItem.ordem || 0), item.ordem || 0);
+
+  return updatePlaca(item.id, {
+    prioridade_local: false,
+    ordem: maxQueueOrder + 1,
+  });
 }
 
 export async function reopenPlaca(item, reason) {

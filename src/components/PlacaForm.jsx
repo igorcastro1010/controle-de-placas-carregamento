@@ -6,6 +6,8 @@ const initialForm = {
   placa: '',
   placa_cavalo: '',
   placa_carreta: '',
+  entrega_local: false,
+  retorno_local: false,
   motorista: '',
   telefone: '',
   rota_1: '',
@@ -24,6 +26,8 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
     const payload = {
       ...form,
       placa: form.tipo_veiculo === 'Carreta' ? form.placa_cavalo : form.placa,
+      prioridade_local: form.retorno_local,
+      prioridade_motivo: form.retorno_local ? 'Retorno de entrega local' : '',
     };
     const success = await onSubmit(payload);
     if (success !== false) setForm(initialForm);
@@ -89,6 +93,28 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           Rota 3
           <input value={form.rota_3} onChange={(event) => updateField('rota_3', event.target.value)} placeholder="Opcional" />
         </label>
+
+        <section className="operation-section full-width" aria-label="Tipo de operação">
+          <div>
+            <span className="operation-title">Tipo de operação</span>
+            <p>Marque apenas quando essa condição fizer parte da operação do motorista.</p>
+          </div>
+          <label className="checkbox-field operation-checkbox">
+            <input type="checkbox" checked={form.entrega_local} onChange={(event) => updateField('entrega_local', event.target.checked)} />
+            <span>
+              Entrega local
+              <small>Marque quando o motorista estiver fazendo entrega local dentro do estado.</small>
+            </span>
+          </label>
+          <label className="checkbox-field operation-checkbox">
+            <input type="checkbox" checked={form.retorno_local} onChange={(event) => updateField('retorno_local', event.target.checked)} />
+            <span>
+              Retorno local com prioridade
+              <small>Use quando o motorista retornou de entrega local e deve ter prioridade na fila.</small>
+            </span>
+          </label>
+        </section>
+
         <label className="full-width">
           Ocorrido
           <textarea value={form.ocorrido} onChange={(event) => updateField('ocorrido', event.target.value)} placeholder="Observações importantes" rows="3" />

@@ -8,16 +8,19 @@ import Filters from '../components/Filters';
 import PlacaForm from '../components/PlacaForm';
 import PlacasTable from '../components/PlacasTable';
 import PeriodReport from '../components/PeriodReport';
+import PriorityLocalModal from '../components/PriorityLocalModal';
 import ReopenPlacaModal from '../components/ReopenPlacaModal';
 import ReportCards from '../components/ReportCards';
 import {
   createPlaca,
   currentTime,
+  addPrioridadeLocal,
   fetchAuditoriaPlaca,
   fetchPlacas,
   fetchReportDetails,
   fetchTodayReport,
   moveToEnd,
+  removePrioridadeLocal,
   registrarAuditoria,
   reopenPlaca,
   signOut,
@@ -34,6 +37,8 @@ const emptyFilters = {
   status: '',
   responsavel: '',
   data: '',
+  entrega_local: '',
+  prioridade_local: '',
 };
 
 const emptyFinishedFilters = {
@@ -71,6 +76,8 @@ export default function Dashboard({ user, onLogout }) {
   const [cancelSaving, setCancelSaving] = useState(false);
   const [reopeningItem, setReopeningItem] = useState(null);
   const [reopenSaving, setReopenSaving] = useState(false);
+  const [priorityItem, setPriorityItem] = useState(null);
+  const [prioritySaving, setPrioritySaving] = useState(false);
   const [auditItem, setAuditItem] = useState(null);
   const [auditEntries, setAuditEntries] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -93,6 +100,10 @@ export default function Dashboard({ user, onLogout }) {
       placa: 'Placa',
       placa_cavalo: 'Placa do cavalo',
       placa_carreta: 'Placa da carreta',
+      entrega_local: 'Entrega local',
+      retorno_local: 'Retorno local',
+      prioridade_local: 'Prioridade local',
+      prioridade_motivo: 'Motivo da prioridade',
       motorista: 'Motorista',
       telefone: 'Telefone',
       rota_1: 'Rota 1',
@@ -196,7 +207,25 @@ export default function Dashboard({ user, onLogout }) {
         ordemNova: created.ordem,
         detalhes: 'Placa cadastrada no sistema.',
       });
-      showSuccess('Placa cadastrada no final da fila.');
+      if (created.entrega_local) {
+        await safeRegisterAudit({
+          placaId: created.id,
+          acao: 'Marcado como entrega local',
+          statusNovo: created.status,
+          ordemNova: created.ordem,
+          detalhes: 'Entrega local marcada no cadastro.',
+        });
+      }
+      if (created.prioridade_local) {
+        await safeRegisterAudit({
+          placaId: created.id,
+          acao: 'Prioridade local adicionada',
+          statusNovo: created.status,
+          ordemNova: created.ordem,
+          detalhes: `Motivo: ${created.prioridade_motivo || 'Retorno de entrega local'}; Por: ${created.prioridade_por || user.email}; Em: ${created.prioridade_em || '-'}`,
+        });
+      }
+      showSuccess(created.prioridade_local ? 'Placa cadastrada com prioridade local.' : 'Placa cadastrada no final da fila.');
       setCreateModalOpen(false);
       await loadData();
       return true;
@@ -332,6 +361,17 @@ export default function Dashboard({ user, onLogout }) {
         ordemNova: updated.ordem,
         detalhes: describeCadastroChanges(original, updated) || 'Cadastro revisado sem alteração detectada nos campos principais.',
       });
+      if (!original?.entrega_local && updated.entrega_local) {
+        await safeRegisterAudit({
+          placaId: id,
+          acao: 'Marcado como entrega local',
+          statusAnterior: original?.status,
+          statusNovo: updated.status,
+          ordemAnterior: original?.ordem,
+          ordemNova: updated.ordem,
+          detalhes: 'Entrega local marcada na edição do cadastro.',
+        });
+      }
       showSuccess('Cadastro atualizado com sucesso.');
       setEditingItem(null);
       await loadData();
@@ -383,6 +423,73 @@ export default function Dashboard({ user, onLogout }) {
     }
 
     setReopeningItem(item);
+  };
+
+  const handlePriorityAction = async (item) => {
+    if (!canManageQueue) {
+      setError('Você não tem permissão para alterar prioridade local.');
+      return;
+    }
+
+    if (!item.prioridade_local) {
+      setPriorityItem(item);
+      return;
+    }
+
+    setBusyId(item.id);
+    setError('');
+    try {
+      const updated = await removePrioridadeLocal(item);
+      await safeRegisterAudit({
+        placaId: item.id,
+        acao: 'Prioridade local removida',
+        statusAnterior: item.status,
+        statusNovo: updated.status,
+        ordemAnterior: item.ordem,
+        ordemNova: updated.ordem,
+        detalhes: `Prioridade local removida por ${user.email}.`,
+      });
+      showSuccess('Prioridade local removida.');
+      await loadData();
+      if (selectedReportCard) await loadReportDetails();
+    } catch (err) {
+      setError(err.message || 'Não foi possível remover a prioridade local.');
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const handleConfirmPriority = async (item, reason) => {
+    if (!canManageQueue) {
+      setError('Você não tem permissão para alterar prioridade local.');
+      setPriorityItem(null);
+      return;
+    }
+
+    setPrioritySaving(true);
+    setBusyId(item.id);
+    setError('');
+    try {
+      const updated = await addPrioridadeLocal(item, user, reason);
+      await safeRegisterAudit({
+        placaId: item.id,
+        acao: 'Prioridade local adicionada',
+        statusAnterior: item.status,
+        statusNovo: updated.status,
+        ordemAnterior: item.ordem,
+        ordemNova: updated.ordem,
+        detalhes: `Motivo: ${reason}; Por: ${updated.prioridade_por || user.email}; Em: ${updated.prioridade_em || '-'}`,
+      });
+      showSuccess('Prioridade local adicionada.');
+      setPriorityItem(null);
+      await loadData();
+      if (selectedReportCard) await loadReportDetails();
+    } catch (err) {
+      setError(err.message || 'Não foi possível adicionar a prioridade local.');
+    } finally {
+      setPrioritySaving(false);
+      setBusyId('');
+    }
   };
 
   const handleConfirmReopen = async (item, reason) => {
@@ -517,7 +624,17 @@ export default function Dashboard({ user, onLogout }) {
                       <h3>Fila de Chamada ({items.length})</h3>
                     </div>
                   </div>
-                  <PlacasTable items={items} onAction={handleAction} onMove={handleMove} onEdit={handleEdit} onAudit={handleOpenAudit} busyId={busyId} canViewAudit={canViewAudit} canManageQueue={canManageQueue} />
+                  <PlacasTable
+                    items={items}
+                    onAction={handleAction}
+                    onMove={handleMove}
+                    onEdit={handleEdit}
+                    onAudit={handleOpenAudit}
+                    onPriority={handlePriorityAction}
+                    busyId={busyId}
+                    canViewAudit={canViewAudit}
+                    canManageQueue={canManageQueue}
+                  />
                 </section>
 
                 <section className="queue-subsection in-progress-subsection" id="em-andamento" ref={inProgressRef}>
@@ -533,6 +650,7 @@ export default function Dashboard({ user, onLogout }) {
                     onMove={handleMove}
                     onEdit={handleEdit}
                     onAudit={handleOpenAudit}
+                    onPriority={handlePriorityAction}
                     busyId={busyId}
                     canViewAudit={canViewAudit}
                     canManageQueue={canManageQueue}
@@ -547,7 +665,7 @@ export default function Dashboard({ user, onLogout }) {
             {loading ? (
               <div className="empty-state">Carregando finalizados...</div>
             ) : (
-              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} canManageQueue={canManageQueue} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={handleRequestReopen} busyId={busyId} />
+              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} canManageQueue={canManageQueue} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={handleRequestReopen} onPriority={handlePriorityAction} busyId={busyId} />
             )}
           </>
         )}
@@ -568,6 +686,7 @@ export default function Dashboard({ user, onLogout }) {
         onEdit={handleEdit}
         onAudit={handleOpenAudit}
         onReopen={handleRequestReopen}
+        onPriority={handlePriorityAction}
         onDateChange={setDetailsDate}
         onSearchChange={setDetailsSearch}
         onClearFilters={() => {
@@ -579,6 +698,7 @@ export default function Dashboard({ user, onLogout }) {
       <EditPlacaModal item={editingItem} saving={editSaving} error={editError} onClose={() => setEditingItem(null)} onSave={handleSaveEdit} />
       <CancelPlacaModal item={cancelingItem} saving={cancelSaving} onClose={() => setCancelingItem(null)} onConfirm={handleConfirmCancel} />
       <ReopenPlacaModal item={reopeningItem} saving={reopenSaving} onClose={() => setReopeningItem(null)} onConfirm={handleConfirmReopen} />
+      <PriorityLocalModal item={priorityItem} saving={prioritySaving} onClose={() => setPriorityItem(null)} onConfirm={handleConfirmPriority} />
       <AuditHistoryModal item={auditItem} entries={auditEntries} loading={auditLoading} error={auditError} onClose={() => setAuditItem(null)} />
 
       {createModalOpen && (

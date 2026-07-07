@@ -66,15 +66,28 @@ function AuditInfo({ item }) {
 }
 
 function VehicleSummary({ item }) {
+  const badges = (
+    <span className="local-badge-row">
+      {item.entrega_local && <span className="local-badge">Entrega local</span>}
+      {(item.retorno_local || item.prioridade_local) && <span className="local-badge priority">Prioridade local</span>}
+    </span>
+  );
+
   if (item.tipo_veiculo === 'Carreta') {
     return (
       <small className="vehicle-summary">
-        Carreta | Cavalo: {item.placa_cavalo || item.placa || '-'} | Carreta: {item.placa_carreta || '-'}
+        <span>Carreta | Cavalo: {item.placa_cavalo || item.placa || '-'} | Carreta: {item.placa_carreta || '-'}</span>
+        {badges}
       </small>
     );
   }
 
-  return <small className="vehicle-summary">Truck | Placa: {item.placa || '-'}</small>;
+  return (
+    <small className="vehicle-summary">
+      <span>Truck | Placa: {item.placa || '-'}</span>
+      {badges}
+    </small>
+  );
 }
 
 function OccurredText({ value }) {
@@ -107,7 +120,7 @@ function OccurredText({ value }) {
   );
 }
 
-export default function PlateCard({ item, index, visualOrder, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit }) {
+export default function PlateCard({ item, index, visualOrder, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onPriority }) {
   const rotas = [item.rota_1, item.rota_2, item.rota_3].filter(Boolean);
   const createdAt = buildCreatedAt(item);
   const updatedAt = item.updated_at ? new Date(item.updated_at) : createdAt;
@@ -189,6 +202,7 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
           onMove={onMove}
           onEdit={onEdit}
           onAudit={onAudit}
+          onPriority={onPriority}
         />
       </footer>
     </article>

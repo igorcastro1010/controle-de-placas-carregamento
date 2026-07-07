@@ -36,6 +36,22 @@ export default function Filters({ filters, onChange, onClear, finalizados = fals
             Responsável
             <input value={filters.responsavel || ''} onChange={(event) => setFilter('responsavel', event.target.value)} placeholder="Buscar responsável" />
           </label>
+          <label>
+            Entrega local
+            <select value={filters.entrega_local || ''} onChange={(event) => setFilter('entrega_local', event.target.value)}>
+              <option value="">Todos</option>
+              <option value="sim">Sim</option>
+              <option value="nao">Não</option>
+            </select>
+          </label>
+          <label>
+            Prioridade local
+            <select value={filters.prioridade_local || ''} onChange={(event) => setFilter('prioridade_local', event.target.value)}>
+              <option value="">Todos</option>
+              <option value="sim">Sim</option>
+              <option value="nao">Não</option>
+            </select>
+          </label>
         </>
       )}
 

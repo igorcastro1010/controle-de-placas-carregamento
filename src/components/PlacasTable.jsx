@@ -11,6 +11,8 @@ const columns = [
   'tipo_veiculo',
   'placa_cavalo',
   'placa_carreta',
+  'entrega_local',
+  'prioridade_local',
   'motorista',
   'telefone',
   'rota_1',
@@ -26,7 +28,7 @@ const columns = [
   'ações',
 ];
 
-function ActiveQueueCards({ items, onAction, onMove, onEdit, onAudit, busyId, canViewAudit, canManageQueue }) {
+function ActiveQueueCards({ items, onAction, onMove, onEdit, onAudit, onPriority, busyId, canViewAudit, canManageQueue }) {
   return (
     <div className="queue-card-list">
       {items.map((item, index) => (
@@ -43,6 +45,7 @@ function ActiveQueueCards({ items, onAction, onMove, onEdit, onAudit, busyId, ca
           onMove={onMove}
           onEdit={onEdit}
           onAudit={onAudit}
+          onPriority={onPriority}
         />
       ))}
     </div>
@@ -71,13 +74,13 @@ function AuditInfo({ item }) {
   return <span className="muted">-</span>;
 }
 
-export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, onReopen, finalizados = false, busyId, canViewAudit = false, canManageQueue = false }) {
+export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, onReopen, onPriority, finalizados = false, busyId, canViewAudit = false, canManageQueue = false }) {
   if (!items.length) {
     return <div className="empty-state">Nenhum registro encontrado.</div>;
   }
 
   if (!finalizados) {
-    return <ActiveQueueCards items={items} onAction={onAction} onMove={onMove} onEdit={onEdit} onAudit={onAudit} busyId={busyId} canViewAudit={canViewAudit} canManageQueue={canManageQueue} />;
+    return <ActiveQueueCards items={items} onAction={onAction} onMove={onMove} onEdit={onEdit} onAudit={onAudit} onPriority={onPriority} busyId={busyId} canViewAudit={canViewAudit} canManageQueue={canManageQueue} />;
   }
 
   return (
@@ -104,6 +107,8 @@ export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, 
               <td data-label="tipo_veiculo">{item.tipo_veiculo || 'Truck'}</td>
               <td data-label="placa_cavalo">{item.placa_cavalo || '-'}</td>
               <td data-label="placa_carreta">{item.placa_carreta || '-'}</td>
+              <td data-label="entrega_local">{item.entrega_local ? 'Sim' : 'Não'}</td>
+              <td data-label="prioridade_local">{item.prioridade_local ? 'Sim' : 'Não'}</td>
               <td data-label="motorista">{item.motorista}</td>
               <td data-label="telefone">{item.telefone || '-'}</td>
               <td data-label="rota_1">{item.rota_1 || '-'}</td>

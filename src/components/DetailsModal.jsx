@@ -44,6 +44,17 @@ function VehicleLine({ item }) {
   return `Truck | Placa: ${item.placa || '-'}`;
 }
 
+function LocalBadges({ item }) {
+  if (!item?.entrega_local && !item?.prioridade_local && !item?.retorno_local) return null;
+
+  return (
+    <span className="local-badge-row">
+      {item.entrega_local && <span className="local-badge">Entrega local</span>}
+      {(item.prioridade_local || item.retorno_local) && <span className="local-badge priority">Prioridade local</span>}
+    </span>
+  );
+}
+
 export default function DetailsModal({
   card,
   date,
@@ -61,6 +72,7 @@ export default function DetailsModal({
   onEdit,
   onAudit,
   onReopen,
+  onPriority,
   busyId,
   onClose,
 }) {
@@ -111,6 +123,7 @@ export default function DetailsModal({
                     <small>
                       <VehicleLine item={item} />
                     </small>
+                    <LocalBadges item={item} />
                   </div>
                   <StatusBadge status={item.status} />
                 </header>
@@ -164,6 +177,7 @@ export default function DetailsModal({
                       onAction={onAction}
                       onEdit={onEdit}
                       onAudit={onAudit}
+                      onPriority={onPriority}
                       onMove={(current, currentIndex, direction) => onMove(current, currentIndex, direction, safeItems)}
                     />
                   </div>
