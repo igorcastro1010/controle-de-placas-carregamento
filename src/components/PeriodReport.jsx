@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Filter, RefreshCw } from 'lucide-react';
+import { ChevronDown, Filter, RefreshCw } from 'lucide-react';
 import {
   REPORT_STATUSES,
   STATUSES,
@@ -46,6 +46,7 @@ export default function PeriodReport() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const loadReport = async () => {
     setLoading(true);
@@ -94,68 +95,85 @@ export default function PeriodReport() {
 
   const updateFilter = (field, value) => setFilters((current) => ({ ...current, [field]: value }));
   const clearFilters = () => setFilters(initialFilters);
+  const activeFilterCount = Object.entries(filters).filter(([field, value]) => {
+    const defaultValue = initialFilters[field];
+    return String(value || '') !== String(defaultValue || '');
+  }).length;
 
   return (
     <section className="period-report">
-      <div className="period-filter-panel">
-        <div className="filter-title">
-          <Filter size={18} aria-hidden="true" />
-          <strong>Filtros</strong>
-        </div>
-        <label>
-          Data inicial
-          <input type="date" value={filters.start} onChange={(event) => updateFilter('start', event.target.value)} />
-        </label>
-        <label>
-          Data final
-          <input type="date" value={filters.end} onChange={(event) => updateFilter('end', event.target.value)} />
-        </label>
-        <label>
-          Status
-          <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
-            <option value="">Todos</option>
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Tipo de veículo
-          <select value={filters.tipo_veiculo} onChange={(event) => updateFilter('tipo_veiculo', event.target.value)}>
-            <option value="">Todos</option>
-            <option value="Truck">Truck</option>
-            <option value="Carreta">Carreta</option>
-          </select>
-        </label>
-        <label>
-          Placa ou motorista
-          <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Digite a placa ou nome" />
-        </label>
-        <label>
-          Responsável
-          <input value={filters.responsavel} onChange={(event) => updateFilter('responsavel', event.target.value)} placeholder="Buscar responsável" />
-        </label>
-        <label>
-          Entrega local
-          <select value={filters.entrega_local} onChange={(event) => updateFilter('entrega_local', event.target.value)}>
-            <option value="">Todos</option>
-            <option value="sim">Sim</option>
-            <option value="nao">Não</option>
-          </select>
-        </label>
-        <label>
-          Prioridade local
-          <select value={filters.prioridade_local} onChange={(event) => updateFilter('prioridade_local', event.target.value)}>
-            <option value="">Todos</option>
-            <option value="sim">Sim</option>
-            <option value="nao">Não</option>
-          </select>
-        </label>
-        <button className="icon-text secondary" type="button" onClick={clearFilters}>
-          Limpar filtros
+      <div className="filter-shell">
+        <button className={`filter-toggle-button ${showFilters ? 'open' : ''}`} type="button" onClick={() => setShowFilters((current) => !current)} aria-expanded={showFilters}>
+          <span>
+            <Filter size={18} aria-hidden="true" />
+            <strong>{activeFilterCount ? 'Filtros ativos' : 'Filtros'}</strong>
+            {activeFilterCount > 0 && <span className="filter-count-badge">{activeFilterCount}</span>}
+          </span>
+          <ChevronDown size={18} aria-hidden="true" />
         </button>
+
+        {showFilters && (
+          <div className="period-filter-panel">
+            <div className="filter-title">
+              <Filter size={18} aria-hidden="true" />
+              <strong>Filtros</strong>
+            </div>
+            <label>
+              Data inicial
+              <input type="date" value={filters.start} onChange={(event) => updateFilter('start', event.target.value)} />
+            </label>
+            <label>
+              Data final
+              <input type="date" value={filters.end} onChange={(event) => updateFilter('end', event.target.value)} />
+            </label>
+            <label>
+              Status
+              <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
+                <option value="">Todos</option>
+                {STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Tipo de veículo
+              <select value={filters.tipo_veiculo} onChange={(event) => updateFilter('tipo_veiculo', event.target.value)}>
+                <option value="">Todos</option>
+                <option value="Truck">Truck</option>
+                <option value="Carreta">Carreta</option>
+              </select>
+            </label>
+            <label>
+              Placa ou motorista
+              <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Digite a placa ou nome" />
+            </label>
+            <label>
+              Responsável
+              <input value={filters.responsavel} onChange={(event) => updateFilter('responsavel', event.target.value)} placeholder="Buscar responsável" />
+            </label>
+            <label>
+              Entrega local
+              <select value={filters.entrega_local} onChange={(event) => updateFilter('entrega_local', event.target.value)}>
+                <option value="">Todos</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </label>
+            <label>
+              Prioridade local
+              <select value={filters.prioridade_local} onChange={(event) => updateFilter('prioridade_local', event.target.value)}>
+                <option value="">Todos</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </label>
+            <button className="icon-text secondary" type="button" onClick={clearFilters}>
+              Limpar filtros
+            </button>
+          </div>
+        )}
       </div>
 
       {error && <div className="alert error">{error}</div>}

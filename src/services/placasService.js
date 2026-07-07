@@ -290,10 +290,10 @@ export async function createPlaca(payload, user) {
       .select('ordem, status, prioridade_local')
       .eq('prioridade_local', true)
       .in('status', STATUS_FILA_ATUAL)
-      .order('ordem', { ascending: true })
+      .order('ordem', { ascending: false })
       .limit(1);
     if (priorityOrderError) throw priorityOrderError;
-    nextOrder = priorityItems?.length ? (priorityItems[0].ordem || 0) - 1 : 0;
+    nextOrder = priorityItems?.length ? (priorityItems[0].ordem || 0) + 1 : 1;
     recordPayload.prioridade_por = user.email;
     recordPayload.prioridade_em = new Date().toISOString();
   } else {
@@ -347,11 +347,11 @@ export async function addPrioridadeLocal(item, user, reason = 'Retorno de entreg
     .select('id, ordem, status, prioridade_local')
     .eq('prioridade_local', true)
     .in('status', STATUS_FILA_ATUAL)
-    .order('ordem', { ascending: true })
+    .order('ordem', { ascending: false })
     .limit(1);
   if (orderError) throw orderError;
 
-  const nextOrder = priorityItems?.length ? (priorityItems[0].ordem || 0) - 1 : 0;
+  const nextOrder = priorityItems?.length ? (priorityItems[0].ordem || 0) + 1 : 1;
   return updatePlaca(item.id, {
     prioridade_local: true,
     retorno_local: true,

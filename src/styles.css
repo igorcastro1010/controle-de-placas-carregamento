@@ -473,6 +473,63 @@ textarea {
   margin-bottom: 14px;
 }
 
+.filter-shell {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.filter-toggle-button {
+  min-height: 42px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #d6dde6;
+  border-radius: 8px;
+  background: #fff;
+  color: #344054;
+  font-weight: 900;
+  padding: 8px 12px;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.filter-toggle-button > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-toggle-button.open,
+.filter-toggle-button:hover {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.filter-toggle-button svg:last-child {
+  transition: transform 0.2s;
+}
+
+.filter-toggle-button.open svg:last-child {
+  transform: rotate(180deg);
+}
+
+.filter-count-badge {
+  min-width: 22px;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #155eef;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 2px 7px;
+}
+
 .wide-filter {
   min-width: 260px;
 }
@@ -1549,12 +1606,14 @@ td {
 
   .quick-actions-bar,
   .create-plate-button,
-  .scroll-progress-button {
+  .scroll-progress-button,
+  .filter-toggle-button {
     width: 100%;
   }
 
   .create-plate-button,
-  .scroll-progress-button {
+  .scroll-progress-button,
+  .filter-toggle-button {
     justify-content: center;
   }
 
