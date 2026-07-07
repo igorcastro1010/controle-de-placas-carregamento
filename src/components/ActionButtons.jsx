@@ -27,6 +27,13 @@ function ActionButton({ className = 'neutral', children, ...props }) {
   );
 }
 
+const normalizeStatus = (status) =>
+  String(status || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
 export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onReopen, onPriority }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState({});
@@ -36,6 +43,8 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
   const isFirst = index === 0;
   const isLast = index === itemsLength - 1;
   const isClosed = ['Finalizado', 'Cancelado'].includes((item.status || '').trim());
+  const statusKey = normalizeStatus(item.status);
+  const isInProgress = ['chamado', 'chegou', 'carregando'].includes(statusKey);
 
   const positionMenu = () => {
     const trigger = triggerRef.current;
@@ -116,8 +125,8 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
   };
 
   return (
-    <div className="queue-actions compact-actions">
-      {!isClosed && (
+    <div className={`queue-actions compact-actions ${isInProgress ? 'in-progress-actions' : ''}`}>
+      {!isClosed && !isInProgress && (
         <div className="primary-actions">
           <ActionButton title="1ª ligação" disabled={disabled} onClick={() => onAction(item, 'primeira')}>
             <Phone size={14} />
@@ -138,6 +147,31 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
           <ActionButton className="blue-soft" title="Chamado" disabled={disabled} onClick={() => onAction(item, 'chamado')}>
             <Megaphone size={14} />
             Chamado
+          </ActionButton>
+        </div>
+      )}
+
+      {!isClosed && isInProgress && (
+        <div className="primary-actions progress-primary-actions">
+          {statusKey === 'chamado' && (
+            <ActionButton className="blue-soft" title="Chegou" disabled={disabled} onClick={() => onAction(item, 'chegou')}>
+              <Check size={14} />
+              Chegou
+            </ActionButton>
+          )}
+          {(statusKey === 'chamado' || statusKey === 'chegou') && (
+            <ActionButton className="purple-soft" title="Carregando" disabled={disabled} onClick={() => onAction(item, 'carregando')}>
+              <Loader size={14} />
+              Carregando
+            </ActionButton>
+          )}
+          <ActionButton className="success-soft" title="Finalizar" disabled={disabled} onClick={() => onAction(item, 'finalizar')}>
+            <CheckCircle2 size={14} />
+            Finalizar
+          </ActionButton>
+          <ActionButton className="danger-soft" title="Cancelar" disabled={disabled} onClick={() => onAction(item, 'cancelar')}>
+            <X size={14} />
+            Cancelar
           </ActionButton>
         </div>
       )}
@@ -183,22 +217,26 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                   <ArrowDownToLine size={14} />
                   Fim
                 </button>
-                <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'chegou'))}>
-                  <Check size={14} />
-                  Chegou
-                </button>
-                <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'carregando'))}>
-                  <Loader size={14} />
-                  Carregando
-                </button>
-                <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'finalizar'))}>
-                  <CheckCircle2 size={14} />
-                  Finalizar
-                </button>
-                <button className="menu-danger" type="button" onClick={() => handleMenuClick(() => onAction(item, 'cancelar'))}>
-                  <X size={14} />
-                  Cancelar
-                </button>
+                {!isInProgress && (
+                  <>
+                    <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'chegou'))}>
+                      <Check size={14} />
+                      Chegou
+                    </button>
+                    <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'carregando'))}>
+                      <Loader size={14} />
+                      Carregando
+                    </button>
+                    <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'finalizar'))}>
+                      <CheckCircle2 size={14} />
+                      Finalizar
+                    </button>
+                    <button className="menu-danger" type="button" onClick={() => handleMenuClick(() => onAction(item, 'cancelar'))}>
+                      <X size={14} />
+                      Cancelar
+                    </button>
+                  </>
+                )}
               </>
             )}
 

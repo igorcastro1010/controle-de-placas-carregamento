@@ -830,6 +830,7 @@ td {
   color: #667085;
   font-size: 0.8rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .plate-time-row {
@@ -888,6 +889,7 @@ td {
 .plate-info-block strong {
   color: #101828;
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
 }
 
 .route-list,
@@ -980,6 +982,13 @@ td {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.progress-primary-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  flex: 1 1 auto;
+  width: 100%;
 }
 
 .more-actions {
@@ -1839,6 +1848,61 @@ td {
 
   .primary-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .in-progress-subsection .plate-card-body {
+    grid-template-columns: 1fr;
+  }
+
+  .in-progress-subsection .plate-card-footer {
+    padding-bottom: 14px;
+  }
+
+  .in-progress-actions {
+    align-items: stretch;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr;
+  }
+
+  .in-progress-actions .progress-primary-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .in-progress-actions .queue-action {
+    min-height: 34px;
+    width: 100%;
+    padding: 7px 8px;
+    white-space: normal;
+  }
+
+  .in-progress-actions .more-actions,
+  .in-progress-actions .more-actions-trigger {
+    width: 100%;
+  }
+
+  .in-progress-actions .more-actions-menu {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    width: auto !important;
+    max-height: min(70vh, 420px);
+    border-radius: 16px;
+    padding: 10px;
+  }
+
+  .in-progress-subsection .plate-info-block {
+    min-height: auto;
+  }
+
+  .in-progress-subsection .plate-info-block small,
+  .in-progress-subsection .plate-info-block strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
