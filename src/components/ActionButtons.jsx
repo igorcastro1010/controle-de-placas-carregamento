@@ -24,7 +24,7 @@ function ActionButton({ className = 'neutral', children, ...props }) {
   );
 }
 
-export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, onAction, onMove, onEdit, onAudit, onReopen }) {
+export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onReopen }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState({});
   const menuRef = useRef(null);
@@ -54,7 +54,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
     }
 
     const width = 230;
-    const itemCount = isClosed ? 2 : canViewAudit ? 9 : 8;
+    const itemCount = isClosed ? (canManageQueue ? 2 : 0) : 6 + (canManageQueue ? 2 : 0) + (canViewAudit ? 1 : 0);
     const estimatedHeight = Math.min(420, itemCount * 39 + 18);
     const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -164,14 +164,18 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                     Histórico
                   </button>
                 )}
-                <button type="button" disabled={isFirst} onClick={() => handleMenuClick(() => onMove(item, index, 'up'))}>
-                  <ArrowUp size={14} />
-                  Subir
-                </button>
-                <button type="button" disabled={isLast} onClick={() => handleMenuClick(() => onMove(item, index, 'down'))}>
-                  <ArrowDown size={14} />
-                  Descer
-                </button>
+                {canManageQueue && (
+                  <>
+                    <button type="button" disabled={isFirst} onClick={() => handleMenuClick(() => onMove(item, index, 'up'))}>
+                      <ArrowUp size={14} />
+                      Subir
+                    </button>
+                    <button type="button" disabled={isLast} onClick={() => handleMenuClick(() => onMove(item, index, 'down'))}>
+                      <ArrowDown size={14} />
+                      Descer
+                    </button>
+                  </>
+                )}
                 <button type="button" onClick={() => handleMenuClick(() => onMove(item, index, 'end'))}>
                   <ArrowDownToLine size={14} />
                   Fim
@@ -191,12 +195,14 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
               </>
             )}
 
-            {isClosed && canViewAudit && (
+            {isClosed && canManageQueue && (
               <>
-                <button type="button" onClick={() => handleMenuClick(() => onAudit?.(item))}>
-                  <History size={14} />
-                  Histórico
-                </button>
+                {canViewAudit && (
+                  <button type="button" onClick={() => handleMenuClick(() => onAudit?.(item))}>
+                    <History size={14} />
+                    Histórico
+                  </button>
+                )}
                 <button type="button" onClick={() => handleMenuClick(() => onReopen?.(item))}>
                   <RotateCcw size={14} />
                   Reabrir

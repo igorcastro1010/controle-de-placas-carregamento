@@ -52,6 +52,7 @@ export default function DetailsModal({
   loading,
   error,
   canViewAudit = false,
+  canManageQueue = false,
   onDateChange,
   onSearchChange,
   onClearFilters,
@@ -142,10 +143,12 @@ export default function DetailsModal({
                         <button className="queue-action neutral audit-inline-button" type="button" onClick={() => onAudit?.(item)}>
                           Histórico
                         </button>
-                        <button className="queue-action success-soft audit-inline-button" type="button" onClick={() => onReopen?.(item)}>
-                          <RotateCcw size={14} aria-hidden="true" />
-                          Reabrir
-                        </button>
+                        {canManageQueue && (
+                          <button className="queue-action success-soft audit-inline-button" type="button" onClick={() => onReopen?.(item)}>
+                            <RotateCcw size={14} aria-hidden="true" />
+                            Reabrir
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -157,6 +160,7 @@ export default function DetailsModal({
                       itemsLength={safeItems.length}
                       busyId={busyId}
                       canViewAudit={canViewAudit}
+                      canManageQueue={canManageQueue}
                       onAction={onAction}
                       onEdit={onEdit}
                       onAudit={onAudit}

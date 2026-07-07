@@ -16,7 +16,8 @@ export const STATUSES = [
 export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
 export const STATUS_FILA_ATUAL = ['Aguardando', '1ª ligação feita', '2ª ligação feita', '3ª ligação feita', 'Não atendeu'];
 export const STATUS_EM_ANDAMENTO = ['Chamado', 'Chegou', 'Carregando'];
-export const AUDIT_VIEWERS = ['gerencia.ce@grupodago.com.br', 'operacional3.ce@grupodago.com.br'];
+export const MANAGERS = ['gerencia.ce@grupodago.com.br', 'operacional3.ce@grupodago.com.br'];
+export const AUDIT_VIEWERS = MANAGERS;
 
 export const REPORT_STATUSES = [
   'Aguardando',
@@ -51,6 +52,8 @@ export const normalizeSearch = (value) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
+
+export const isManager = (user) => MANAGERS.includes(String(user?.email || '').trim().toLowerCase());
 
 const inactiveStatusFilter = () => `(${ACTIVE_EXCLUDED_STATUSES.map((status) => `"${status}"`).join(',')})`;
 

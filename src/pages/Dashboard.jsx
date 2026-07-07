@@ -11,7 +11,6 @@ import PeriodReport from '../components/PeriodReport';
 import ReopenPlacaModal from '../components/ReopenPlacaModal';
 import ReportCards from '../components/ReportCards';
 import {
-  AUDIT_VIEWERS,
   createPlaca,
   currentTime,
   fetchAuditoriaPlaca,
@@ -23,6 +22,7 @@ import {
   reopenPlaca,
   signOut,
   swapOrder,
+  isManager,
   todayISO,
   updatePlaca,
   updatePlacaCadastro,
@@ -42,7 +42,8 @@ const emptyFinishedFilters = {
 };
 
 export default function Dashboard({ user, onLogout }) {
-  const canViewAudit = AUDIT_VIEWERS.includes(user.email?.toLowerCase());
+  const canManageQueue = isManager(user);
+  const canViewAudit = canManageQueue;
   const [activeTab, setActiveTab] = useState('fila');
   const [items, setItems] = useState([]);
   const [inProgressItems, setInProgressItems] = useState([]);
@@ -258,6 +259,11 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleMove = async (item, index, direction, sourceItems = items) => {
+    if ((direction === 'up' || direction === 'down') && !canManageQueue) {
+      setError('Você não tem permissão para alterar essa posição.');
+      return;
+    }
+
     setBusyId(item.id);
     setError('');
     try {
@@ -359,7 +365,22 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  const handleRequestReopen = (item) => {
+    if (!canManageQueue) {
+      setError('Você não tem permissão para reabrir marcações.');
+      return;
+    }
+
+    setReopeningItem(item);
+  };
+
   const handleConfirmReopen = async (item, reason) => {
+    if (!canManageQueue) {
+      setError('Você não tem permissão para reabrir marcações.');
+      setReopeningItem(null);
+      return;
+    }
+
     setReopenSaving(true);
     setError('');
     try {
@@ -390,6 +411,11 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleOpenAudit = async (item) => {
+    if (!canViewAudit) {
+      setError('Você não tem permissão para ver auditoria.');
+      return;
+    }
+
     setAuditItem(item);
     setAuditEntries([]);
     setAuditError('');
@@ -470,7 +496,7 @@ export default function Dashboard({ user, onLogout }) {
                       <h3>Fila de Chamada ({items.length})</h3>
                     </div>
                   </div>
-                  <PlacasTable items={items} onAction={handleAction} onMove={handleMove} onEdit={handleEdit} onAudit={handleOpenAudit} busyId={busyId} canViewAudit={canViewAudit} />
+                  <PlacasTable items={items} onAction={handleAction} onMove={handleMove} onEdit={handleEdit} onAudit={handleOpenAudit} busyId={busyId} canViewAudit={canViewAudit} canManageQueue={canManageQueue} />
                 </section>
 
                 <section className="queue-subsection in-progress-subsection">
@@ -488,6 +514,7 @@ export default function Dashboard({ user, onLogout }) {
                     onAudit={handleOpenAudit}
                     busyId={busyId}
                     canViewAudit={canViewAudit}
+                    canManageQueue={canManageQueue}
                   />
                 </section>
               </div>
@@ -499,7 +526,7 @@ export default function Dashboard({ user, onLogout }) {
             {loading ? (
               <div className="empty-state">Carregando finalizados...</div>
             ) : (
-              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={setReopeningItem} busyId={busyId} />
+              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} canManageQueue={canManageQueue} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={handleRequestReopen} busyId={busyId} />
             )}
           </>
         )}
@@ -513,12 +540,13 @@ export default function Dashboard({ user, onLogout }) {
         loading={detailsLoading}
         error={detailsError}
         canViewAudit={canViewAudit}
+        canManageQueue={canManageQueue}
         busyId={busyId}
         onAction={handleAction}
         onMove={handleMove}
         onEdit={handleEdit}
         onAudit={handleOpenAudit}
-        onReopen={setReopeningItem}
+        onReopen={handleRequestReopen}
         onDateChange={setDetailsDate}
         onSearchChange={setDetailsSearch}
         onClearFilters={() => {

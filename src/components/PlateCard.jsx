@@ -47,7 +47,7 @@ function VehicleSummary({ item }) {
   return <small className="vehicle-summary">Truck | Placa: {item.placa || '-'}</small>;
 }
 
-export default function PlateCard({ item, index, visualOrder, itemsLength, busyId, canViewAudit, onAction, onMove, onEdit, onAudit }) {
+export default function PlateCard({ item, index, visualOrder, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit }) {
   const rotas = [item.rota_1, item.rota_2, item.rota_3].filter(Boolean);
 
   return (
@@ -111,7 +111,18 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
       </div>
 
       <footer className="plate-card-footer">
-        <ActionButtons item={item} index={index} itemsLength={itemsLength} busyId={busyId} canViewAudit={canViewAudit} onAction={onAction} onMove={onMove} onEdit={onEdit} onAudit={onAudit} />
+        <ActionButtons
+          item={item}
+          index={index}
+          itemsLength={itemsLength}
+          busyId={busyId}
+          canViewAudit={canViewAudit}
+          canManageQueue={canManageQueue}
+          onAction={onAction}
+          onMove={onMove}
+          onEdit={onEdit}
+          onAudit={onAudit}
+        />
       </footer>
     </article>
   );

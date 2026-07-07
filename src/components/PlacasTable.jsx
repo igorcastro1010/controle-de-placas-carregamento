@@ -26,7 +26,7 @@ const columns = [
   'ações',
 ];
 
-function ActiveQueueCards({ items, onAction, onMove, onEdit, onAudit, busyId, canViewAudit }) {
+function ActiveQueueCards({ items, onAction, onMove, onEdit, onAudit, busyId, canViewAudit, canManageQueue }) {
   return (
     <div className="queue-card-list">
       {items.map((item, index) => (
@@ -38,6 +38,7 @@ function ActiveQueueCards({ items, onAction, onMove, onEdit, onAudit, busyId, ca
           itemsLength={items.length}
           busyId={busyId}
           canViewAudit={canViewAudit}
+          canManageQueue={canManageQueue}
           onAction={onAction}
           onMove={onMove}
           onEdit={onEdit}
@@ -70,13 +71,13 @@ function AuditInfo({ item }) {
   return <span className="muted">-</span>;
 }
 
-export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, onReopen, finalizados = false, busyId, canViewAudit = false }) {
+export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, onReopen, finalizados = false, busyId, canViewAudit = false, canManageQueue = false }) {
   if (!items.length) {
     return <div className="empty-state">Nenhum registro encontrado.</div>;
   }
 
   if (!finalizados) {
-    return <ActiveQueueCards items={items} onAction={onAction} onMove={onMove} onEdit={onEdit} onAudit={onAudit} busyId={busyId} canViewAudit={canViewAudit} />;
+    return <ActiveQueueCards items={items} onAction={onAction} onMove={onMove} onEdit={onEdit} onAudit={onAudit} busyId={busyId} canViewAudit={canViewAudit} canManageQueue={canManageQueue} />;
   }
 
   return (
@@ -125,10 +126,12 @@ export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, 
                     <button className="queue-action neutral audit-inline-button" type="button" onClick={() => onAudit?.(item)}>
                       Histórico
                     </button>
-                    <button className="queue-action success-soft audit-inline-button" type="button" onClick={() => onReopen?.(item)}>
-                      <RotateCcw size={14} aria-hidden="true" />
-                      Reabrir
-                    </button>
+                    {canManageQueue && (
+                      <button className="queue-action success-soft audit-inline-button" type="button" onClick={() => onReopen?.(item)}>
+                        <RotateCcw size={14} aria-hidden="true" />
+                        Reabrir
+                      </button>
+                    )}
                   </div>
                 </td>
               )}
