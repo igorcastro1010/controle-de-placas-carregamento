@@ -81,6 +81,13 @@ npm run dev
 
 Depois abra a URL mostrada pelo Vite, normalmente `http://localhost:3000`.
 
+Em ambiente local, o link pode variar conforme a porta livre. Normalmente será algo como:
+
+```text
+http://localhost:5173
+http://127.0.0.1:3000
+```
+
 Se você usar convite ou recuperação de senha do Supabase, configure em `Authentication > URL Configuration`:
 
 ```text
@@ -117,6 +124,8 @@ Redirect URLs:
 http://localhost:3000
 https://sua-url-da-vercel.vercel.app
 ```
+
+Em produção, o link público é definido pela Vercel. Para mudar o link público do sistema, configure um domínio em `Project Settings > Domains` na Vercel e depois atualize também as URLs permitidas no Supabase Auth.
 
 ## Estrutura
 
