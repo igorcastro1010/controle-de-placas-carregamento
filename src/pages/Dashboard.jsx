@@ -310,9 +310,13 @@ export default function Dashboard({ user, onLogout }) {
           detalhes: `Motivo: ${created.prioridade_motivo || 'RETORNO DE ENTREGA LOCAL'}; Por: ${created.prioridade_por || user.email}; Em: ${created.prioridade_em || '-'}`,
         });
       }
-      showSuccess(created.prioridade_local ? 'Placa cadastrada com prioridade local.' : 'Placa cadastrada no final da fila.');
       setCreateModalOpen(false);
       await loadData();
+      if (created.veiculoCadastroErro) {
+        setError('Placa cadastrada na fila, mas não foi possível salvar no cadastro de veículos.');
+      } else {
+        showSuccess(created.prioridade_local ? 'Placa cadastrada com prioridade local.' : 'Placa cadastrada no final da fila.');
+      }
       return true;
     } catch (err) {
       setError(err.message || 'Não foi possível cadastrar a placa.');
@@ -467,10 +471,14 @@ export default function Dashboard({ user, onLogout }) {
           detalhes: 'Entrega local marcada na edição do cadastro.',
         });
       }
-      showSuccess('Cadastro atualizado com sucesso.');
       setEditingItem(null);
       await loadData();
       if (selectedReportCard) await loadReportDetails();
+      if (updated.veiculoCadastroErro) {
+        setError('Cadastro atualizado, mas não foi possível salvar no cadastro de veículos.');
+      } else {
+        showSuccess('Cadastro atualizado com sucesso.');
+      }
       return true;
     } catch (err) {
       setEditError(err.message || 'Não foi possível atualizar o cadastro.');

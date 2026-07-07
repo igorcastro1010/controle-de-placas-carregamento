@@ -19,6 +19,14 @@ const initialForm = {
 
 const upperInputFields = new Set(['placa', 'placa_cavalo', 'placa_carreta', 'motorista', 'telefone', 'rota_1', 'rota_2', 'rota_3', 'ocorrido']);
 
+function FieldHintSpacer() {
+  return (
+    <small className="field-hint field-hint-placeholder" aria-hidden="true">
+      &nbsp;
+    </small>
+  );
+}
+
 export default function PlacaForm({ onSubmit, loading, error, embedded = false }) {
   const [form, setForm] = useState(initialForm);
   const [lookupStatus, setLookupStatus] = useState('');
@@ -125,6 +133,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
             <option value="Truck">Truck</option>
             <option value="Carreta">Carreta</option>
           </select>
+          <FieldHintSpacer />
         </label>
 
         {!isCarreta && (
@@ -147,12 +156,14 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           <label>
             Placa da carreta *
             <input required value={form.placa_carreta} onChange={(event) => updateField('placa_carreta', event.target.value)} placeholder="Digite a placa da carreta" />
+            <FieldHintSpacer />
           </label>
         )}
 
         <label>
           Motorista *
           <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} placeholder="Digite o nome do motorista" />
+          {!isCarreta && <FieldHintSpacer />}
         </label>
 
         {lookupStatus && (

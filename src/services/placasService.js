@@ -184,6 +184,7 @@ export async function fetchVeiculosMotoristas(filters = {}) {
   let query = supabase.from('veiculos_motoristas').select('*').order('ultimo_uso_em', { ascending: false, nullsFirst: false }).order('updated_at', { ascending: false });
 
   if (filters.motorista) query = query.ilike('motorista', `%${filters.motorista}%`);
+  if (filters.placa) query = query.or(vehiclePlateOrFilter([filters.placa]));
 
   const { data, error } = await query;
   if (error) throw error;
@@ -202,7 +203,7 @@ export async function salvarOuAtualizarVeiculoMotorista(source, user) {
   const { data: existingItems, error: fetchError } = await supabase.from('veiculos_motoristas').select('*').or(lookupFilter).limit(1);
   if (fetchError) throw fetchError;
 
-  const existing = findVehicleRegistrationInList(existingItems || [], recordPayload.placa);
+  const existing = existingItems?.[0] || null;
   const now = new Date().toISOString();
 
   if (existing) {
@@ -239,10 +240,11 @@ export async function salvarOuAtualizarVeiculoMotorista(source, user) {
 
 async function safeSyncVeiculoMotorista(source, user) {
   try {
-    return await salvarOuAtualizarVeiculoMotorista(source, user);
+    const data = await salvarOuAtualizarVeiculoMotorista(source, user);
+    return { ok: true, data };
   } catch (err) {
-    console.warn('Não foi possível sincronizar o cadastro do veículo.', err);
-    return null;
+    console.error('Erro ao salvar cadastro do veículo', err);
+    return { ok: false, error: err };
   }
 }
 
@@ -447,7 +449,8 @@ export async function createPlaca(payload, user) {
 
   const { data, error } = await supabase.from('placas').insert(record).select().single();
   if (error) throw error;
-  await safeSyncVeiculoMotorista(data, user);
+  const vehicleSync = await safeSyncVeiculoMotorista(data, user);
+  if (!vehicleSync.ok) data.veiculoCadastroErro = true;
   return data;
 }
 
@@ -455,7 +458,8 @@ export async function updatePlacaCadastro(id, payload, user) {
   const recordPayload = normalizeVehiclePayload(payload);
   await ensurePlateIsNotDuplicated(recordPayload, id);
   const updated = await updatePlaca(id, recordPayload);
-  await safeSyncVeiculoMotorista(updated, user);
+  const vehicleSync = await safeSyncVeiculoMotorista(updated, user);
+  if (!vehicleSync.ok) updated.veiculoCadastroErro = true;
   return updated;
 }
 
