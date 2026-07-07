@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowDown,
   ArrowDownToLine,
@@ -26,10 +26,86 @@ function ActionButton({ className = 'neutral', children, ...props }) {
 
 export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, onAction, onMove, onEdit, onAudit, onReopen }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState({});
+  const menuRef = useRef(null);
+  const triggerRef = useRef(null);
   const disabled = busyId === item.id;
   const isFirst = index === 0;
   const isLast = index === itemsLength - 1;
   const isClosed = ['Finalizado', 'Cancelado'].includes((item.status || '').trim());
+
+  const positionMenu = () => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const isMobile = window.innerWidth <= 820;
+
+    if (isMobile) {
+      setMenuStyle({
+        position: 'fixed',
+        left: 12,
+        right: 12,
+        bottom: 12,
+        top: 'auto',
+        width: 'auto',
+      });
+      return;
+    }
+
+    const width = 230;
+    const itemCount = isClosed ? 2 : canViewAudit ? 9 : 8;
+    const estimatedHeight = Math.min(420, itemCount * 39 + 18);
+    const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow >= estimatedHeight + 16 ? rect.bottom + 8 : Math.max(12, rect.top - estimatedHeight - 8);
+
+    setMenuStyle({
+      position: 'fixed',
+      left,
+      top,
+      width,
+    });
+  };
+
+  const toggleMenu = () => {
+    if (menuOpen) {
+      setMenuOpen(false);
+      return;
+    }
+
+    positionMenu();
+    setMenuOpen(true);
+  };
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (menuRef.current?.contains(event.target) || triggerRef.current?.contains(event.target)) return;
+      setMenuOpen(false);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+
+    const handleViewportChange = () => {
+      setMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [menuOpen]);
 
   const handleMenuClick = (callback) => {
     callback?.();
@@ -68,14 +144,14 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
       )}
 
       <div className="more-actions">
-        <button className="queue-action neutral more-actions-trigger" type="button" disabled={disabled} aria-expanded={menuOpen} onClick={() => setMenuOpen((current) => !current)}>
+        <button ref={triggerRef} className="queue-action neutral more-actions-trigger" type="button" disabled={disabled} aria-expanded={menuOpen} onClick={toggleMenu}>
           <MoreHorizontal size={15} />
           Mais ações
           <ChevronDown size={14} />
         </button>
 
         {menuOpen && (
-          <div className="more-actions-menu">
+          <div ref={menuRef} className="more-actions-menu" style={menuStyle}>
             {!isClosed && (
               <>
                 <button type="button" onClick={() => handleMenuClick(() => onEdit?.(item))}>
