@@ -15,6 +15,7 @@ export const STATUSES = [
 
 export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
 export const STATUS_FILA_ATUAL = ['Aguardando', '1ª ligação feita', '2ª ligação feita', '3ª ligação feita', 'Não atendeu'];
+export const STATUS_EM_ANDAMENTO = ['Chamado', 'Chegou', 'Carregando'];
 export const AUDIT_VIEWERS = ['gerencia.ce@grupodago.com.br', 'operacional3.ce@grupodago.com.br'];
 
 export const REPORT_STATUSES = [
@@ -54,6 +55,8 @@ export const normalizeSearch = (value) =>
 const inactiveStatusFilter = () => `(${ACTIVE_EXCLUDED_STATUSES.map((status) => `"${status}"`).join(',')})`;
 
 export const isStatusFilaAtual = (status) => STATUS_FILA_ATUAL.some((queueStatus) => normalizeStatus(queueStatus) === normalizeStatus(status));
+
+export const isStatusEmAndamento = (status) => STATUS_EM_ANDAMENTO.some((progressStatus) => normalizeStatus(progressStatus) === normalizeStatus(status));
 
 export const isActiveStatus = (status) => !ACTIVE_EXCLUDED_STATUSES.some((inactiveStatus) => normalizeStatus(inactiveStatus) === normalizeStatus(status));
 
@@ -139,7 +142,7 @@ export async function signOut() {
   if (error) throw error;
 }
 
-export async function fetchPlacas({ finalizados = false, filters = {} } = {}) {
+export async function fetchPlacas({ finalizados = false, filters = {}, scope = 'fila' } = {}) {
   let query = supabase.from('placas').select('*');
 
   if (finalizados) {
@@ -160,6 +163,15 @@ export async function fetchPlacas({ finalizados = false, filters = {} } = {}) {
   const { data, error } = await query;
   if (error) throw error;
   if (finalizados) return data || [];
+
+  if (scope === 'andamento') {
+    return (data || []).filter((item) => isStatusEmAndamento(item.status));
+  }
+
+  if (scope === 'ativos') {
+    return data || [];
+  }
+
   return (data || []).filter((item) => isStatusFilaAtual(item.status));
 }
 

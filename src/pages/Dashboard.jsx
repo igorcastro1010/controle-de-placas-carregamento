@@ -45,6 +45,7 @@ export default function Dashboard({ user, onLogout }) {
   const canViewAudit = AUDIT_VIEWERS.includes(user.email?.toLowerCase());
   const [activeTab, setActiveTab] = useState('fila');
   const [items, setItems] = useState([]);
+  const [inProgressItems, setInProgressItems] = useState([]);
   const [finishedItems, setFinishedItems] = useState([]);
   const [report, setReport] = useState({});
   const [filters, setFilters] = useState(emptyFilters);
@@ -107,12 +108,14 @@ export default function Dashboard({ user, onLogout }) {
     setLoading(true);
     setError('');
     try {
-      const [active, finished, dailyReport] = await Promise.all([
+      const [active, inProgress, finished, dailyReport] = await Promise.all([
         fetchPlacas({ filters }),
+        fetchPlacas({ filters, scope: 'andamento' }),
         fetchPlacas({ finalizados: true, filters: finishedFilters }),
         fetchTodayReport(),
       ]);
       setItems(active);
+      setInProgressItems(inProgress);
       setFinishedItems(finished);
       setReport(dailyReport);
     } catch (err) {
@@ -259,7 +262,8 @@ export default function Dashboard({ user, onLogout }) {
     setError('');
     try {
       if (direction === 'end') {
-        const moved = await moveToEnd(item);
+        const maxOrder = sourceItems.reduce((max, sourceItem) => Math.max(max, sourceItem.ordem || 0), item.ordem || 0);
+        const moved = await updatePlaca(item.id, { ordem: maxOrder + 1 });
         await safeRegisterAudit({
           placaId: item.id,
           acao: 'Movido para o fim',
@@ -401,7 +405,7 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const tableTitle = useMemo(() => {
-    if (activeTab === 'fila') return 'Fila atual';
+    if (activeTab === 'fila') return 'Fila de chamada';
     if (activeTab === 'relatorio') return 'Relatório por período';
     return 'Finalizados e cancelados';
   }, [activeTab]);
@@ -439,7 +443,7 @@ export default function Dashboard({ user, onLogout }) {
           <h2>{tableTitle}</h2>
           <div className="tabs" role="tablist" aria-label="Telas">
             <button className={activeTab === 'fila' ? 'active' : ''} onClick={() => setActiveTab('fila')} type="button">
-              Fila Atual
+              Fila de Chamada
             </button>
             <button className={activeTab === 'finalizados' ? 'active' : ''} onClick={() => setActiveTab('finalizados')} type="button">
               Finalizados
@@ -458,7 +462,35 @@ export default function Dashboard({ user, onLogout }) {
             {loading ? (
               <div className="empty-state">Carregando fila...</div>
             ) : (
-              <PlacasTable items={items} onAction={handleAction} onMove={handleMove} onEdit={handleEdit} onAudit={handleOpenAudit} busyId={busyId} canViewAudit={canViewAudit} />
+              <div className="queue-split-layout">
+                <section className="queue-subsection">
+                  <div className="queue-subsection-header">
+                    <div>
+                      <span className="eyebrow">Fila de Chamada</span>
+                      <h3>Fila de Chamada ({items.length})</h3>
+                    </div>
+                  </div>
+                  <PlacasTable items={items} onAction={handleAction} onMove={handleMove} onEdit={handleEdit} onAudit={handleOpenAudit} busyId={busyId} canViewAudit={canViewAudit} />
+                </section>
+
+                <section className="queue-subsection in-progress-subsection">
+                  <div className="queue-subsection-header">
+                    <div>
+                      <span className="eyebrow">Em Andamento</span>
+                      <h3>Em Andamento ({inProgressItems.length})</h3>
+                    </div>
+                  </div>
+                  <PlacasTable
+                    items={inProgressItems}
+                    onAction={handleAction}
+                    onMove={handleMove}
+                    onEdit={handleEdit}
+                    onAudit={handleOpenAudit}
+                    busyId={busyId}
+                    canViewAudit={canViewAudit}
+                  />
+                </section>
+              </div>
             )}
           </>
         ) : (
