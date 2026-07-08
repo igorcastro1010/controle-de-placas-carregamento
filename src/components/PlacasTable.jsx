@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react';
 import PlateCard from './PlateCard';
 import StatusBadge from './StatusBadge';
-import { formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
 
 const columns = [
   'ordem',
@@ -18,6 +18,8 @@ const columns = [
   'rota_1',
   'rota_2',
   'rota_3',
+  'cidade_destino',
+  'valor_frete',
   'primeira_ligacao',
   'segunda_ligacao',
   'terceira_ligacao',
@@ -114,6 +116,8 @@ export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, 
               <td data-label="rota_1">{item.rota_1 || '-'}</td>
               <td data-label="rota_2">{item.rota_2 || '-'}</td>
               <td data-label="rota_3">{item.rota_3 || '-'}</td>
+              <td data-label="cidade_destino">{item.cidade_destino || '-'}</td>
+              <td data-label="valor_frete">{formatCurrency(item.valor_frete_carreteiro)}</td>
               <td data-label="primeira_ligacao">{formatTime(item.primeira_ligacao)}</td>
               <td data-label="segunda_ligacao">{formatTime(item.segunda_ligacao)}</td>
               <td data-label="terceira_ligacao">{formatTime(item.terceira_ligacao)}</td>

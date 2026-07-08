@@ -1,7 +1,7 @@
 import { RotateCcw, X } from 'lucide-react';
 import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
-import { formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
 
 const isClosed = (status) => ['Finalizado', 'Cancelado'].includes((status || '').trim());
 
@@ -139,6 +139,11 @@ export default function DetailsModal({
                     1ª {formatTime(item.primeira_ligacao)} | 2ª {formatTime(item.segunda_ligacao)} | 3ª {formatTime(item.terceira_ligacao)}
                   </DetailField>
                   <DetailField label="Responsável">{item.responsavel_email || item.responsavel || '-'}</DetailField>
+                  {(item.cidade_destino || item.valor_frete_carreteiro) && (
+                    <DetailField label="Frete">
+                      {[item.cidade_destino ? `Cidade: ${item.cidade_destino}` : '', item.valor_frete_carreteiro ? `Valor: ${formatCurrency(item.valor_frete_carreteiro)}` : ''].filter(Boolean).join(' | ')}
+                    </DetailField>
+                  )}
                   {item.ocorrido && <DetailField label="Ocorrido">{item.ocorrido}</DetailField>}
                   {canViewAudit && isClosed(item.status) && (
                     <div className="detail-field detail-field-wide">

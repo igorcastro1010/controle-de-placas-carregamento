@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownCircle, LogOut, PlusCircle, RefreshCw, X } from 'lucide-react';
 import AuditHistoryModal from '../components/AuditHistoryModal';
 import CancelPlacaModal from '../components/CancelPlacaModal';
+import ChamadoModal from '../components/ChamadoModal';
 import DetailsModal from '../components/DetailsModal';
 import EditPlacaModal from '../components/EditPlacaModal';
 import Filters from '../components/Filters';
@@ -82,6 +83,8 @@ export default function Dashboard({ user, onLogout }) {
   const [editSaving, setEditSaving] = useState(false);
   const [cancelingItem, setCancelingItem] = useState(null);
   const [cancelSaving, setCancelSaving] = useState(false);
+  const [chamadoItem, setChamadoItem] = useState(null);
+  const [chamadoSaving, setChamadoSaving] = useState(false);
   const [reopeningItem, setReopeningItem] = useState(null);
   const [reopenSaving, setReopenSaving] = useState(false);
   const [priorityItem, setPriorityItem] = useState(null);
@@ -119,6 +122,8 @@ export default function Dashboard({ user, onLogout }) {
       rota_1: 'Rota 1',
       rota_2: 'Rota 2',
       rota_3: 'Rota 3',
+      cidade_destino: 'Cidade destino',
+      valor_frete_carreteiro: 'Frete carreteiro',
       ocorrido: 'Ocorrido',
     };
 
@@ -335,7 +340,6 @@ export default function Dashboard({ user, onLogout }) {
         primeira: { primeira_ligacao: time, status: '1ª ligação feita' },
         segunda: { segunda_ligacao: time, status: '2ª ligação feita' },
         terceira: { terceira_ligacao: time, status: '3ª ligação feita' },
-        chamado: { status: 'Chamado' },
         chegou: { status: 'Chegou' },
         carregando: { status: 'Carregando' },
         finalizar: { status: 'Finalizado', finalizado_por: user.email, finalizado_em: new Date().toISOString() },
@@ -355,13 +359,14 @@ export default function Dashboard({ user, onLogout }) {
         });
       } else if (action === 'cancelar') {
         setCancelingItem(item);
+      } else if (action === 'chamado') {
+        setChamadoItem(item);
       } else {
         const updated = await updatePlaca(item.id, actionMap[action]);
         const auditActionMap = {
           primeira: '1ª ligação',
           segunda: '2ª ligação',
           terceira: '3ª ligação',
-          chamado: 'Chamado',
           chegou: 'Chegou',
           carregando: 'Carregando',
           finalizar: 'Finalizado',
@@ -376,7 +381,7 @@ export default function Dashboard({ user, onLogout }) {
         });
       }
 
-      if (action !== 'cancelar') {
+      if (action !== 'cancelar' && action !== 'chamado') {
         await loadData();
         if (selectedReportCard) await loadReportDetails();
       }
@@ -384,6 +389,35 @@ export default function Dashboard({ user, onLogout }) {
       setError(err.message || 'Não foi possível atualizar a placa.');
     } finally {
       setBusyId('');
+    }
+  };
+
+  const handleConfirmChamado = async (item, chamadoPayload) => {
+    setChamadoSaving(true);
+    setError('');
+    try {
+      const updated = await updatePlaca(item.id, {
+        status: 'Chamado',
+        cidade_destino: chamadoPayload.cidade_destino,
+        valor_frete_carreteiro: chamadoPayload.valor_frete_carreteiro,
+      });
+      await safeRegisterAudit({
+        placaId: item.id,
+        acao: 'Chamado',
+        statusAnterior: item.status,
+        statusNovo: 'Chamado',
+        ordemAnterior: item.ordem,
+        ordemNova: updated.ordem,
+        detalhes: `Cidade: ${updated.cidade_destino || '-'}; Frete carreteiro: ${updated.valor_frete_carreteiro || '-'}`,
+      });
+      setChamadoItem(null);
+      await loadData();
+      if (selectedReportCard) await loadReportDetails();
+      showSuccess('Motorista marcado como chamado.');
+    } catch (err) {
+      setError(err.message || 'Não foi possível marcar como chamado.');
+    } finally {
+      setChamadoSaving(false);
     }
   };
 
@@ -814,6 +848,7 @@ export default function Dashboard({ user, onLogout }) {
         onClose={handleCloseReportDetails}
       />
       <EditPlacaModal item={editingItem} saving={editSaving} error={editError} onClose={() => setEditingItem(null)} onSave={handleSaveEdit} />
+      <ChamadoModal item={chamadoItem} saving={chamadoSaving} onClose={() => setChamadoItem(null)} onConfirm={handleConfirmChamado} />
       <CancelPlacaModal item={cancelingItem} saving={cancelSaving} onClose={() => setCancelingItem(null)} onConfirm={handleConfirmCancel} />
       <ReopenPlacaModal item={reopeningItem} saving={reopenSaving} onClose={() => setReopeningItem(null)} onConfirm={handleConfirmReopen} />
       <PriorityLocalModal item={priorityItem} saving={prioritySaving} onClose={() => setPriorityItem(null)} onConfirm={handleConfirmPriority} />

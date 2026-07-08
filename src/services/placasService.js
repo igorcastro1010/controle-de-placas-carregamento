@@ -276,6 +276,16 @@ export const formatDateTime = (value) => {
   }).format(new Date(value));
 };
 
+export const formatCurrency = (value) => {
+  if (value === null || value === undefined || value === '') return '-';
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return String(value);
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(numberValue);
+};
+
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;

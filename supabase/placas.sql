@@ -20,6 +20,8 @@ create table if not exists public.placas (
   rota_1 text,
   rota_2 text,
   rota_3 text,
+  cidade_destino text,
+  valor_frete_carreteiro numeric(12,2),
   primeira_ligacao time without time zone,
   segunda_ligacao time without time zone,
   terceira_ligacao time without time zone,

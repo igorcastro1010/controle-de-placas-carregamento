@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
-import { formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
 
 const valueOrDash = (value) => value || <span className="soft-empty">-</span>;
 
@@ -178,6 +178,15 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
         <InfoBlock title="Responsável">
           <small>{item.responsavel_email || item.responsavel || '-'}</small>
         </InfoBlock>
+
+        {(item.cidade_destino || item.valor_frete_carreteiro) && (
+          <InfoBlock title="Frete">
+            <div className="call-list">
+              <small>Cidade: {item.cidade_destino || '-'}</small>
+              <small>Valor: {formatCurrency(item.valor_frete_carreteiro)}</small>
+            </div>
+          </InfoBlock>
+        )}
 
         {item.ocorrido && (
           <InfoBlock title="Ocorrido" className="occurred-block">

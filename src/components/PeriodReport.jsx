@@ -4,6 +4,7 @@ import {
   REPORT_STATUSES,
   STATUSES,
   fetchPeriodReport,
+  formatCurrency,
   formatDate,
   formatDateTime,
   formatTime,
@@ -228,6 +229,10 @@ export default function PeriodReport({ refreshSignal = 0 }) {
                 <DetailLine label="Telefone" value={item.telefone} />
                 <DetailLine label="Data/Hora" value={`${formatDate(item.data)} - ${formatTime(item.hora)}`} />
                 <DetailLine label="Rotas" value={[item.rota_1, item.rota_2, item.rota_3].filter(Boolean).join(' | ')} />
+                <DetailLine
+                  label="Frete"
+                  value={[item.cidade_destino ? `Cidade: ${item.cidade_destino}` : '', item.valor_frete_carreteiro ? `Valor: ${formatCurrency(item.valor_frete_carreteiro)}` : ''].filter(Boolean).join(' | ')}
+                />
                 <DetailLine label="Ligações" value={`1ª ${formatTime(item.primeira_ligacao)} | 2ª ${formatTime(item.segunda_ligacao)} | 3ª ${formatTime(item.terceira_ligacao)}`} />
                 <DetailLine label="Responsável" value={item.responsavel_email || item.responsavel} />
                 <DetailLine label="Finalizado por" value={item.finalizado_por} />
