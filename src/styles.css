@@ -634,6 +634,50 @@ textarea {
   gap: 10px;
 }
 
+.body-type-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 8px;
+  border: 1px solid #d6dde6;
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px;
+}
+
+.body-type-option {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #536070;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 900;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.body-type-option input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.body-type-option:hover {
+  background: #f8fafc;
+  border-color: #d6dde6;
+}
+
+.body-type-option.active {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #1849a9;
+  box-shadow: 0 1px 5px rgba(21, 94, 239, 0.15);
+}
+
 .operation-checkbox {
   align-items: flex-start;
   border: 1px solid #edf1f5;
@@ -1857,6 +1901,7 @@ td {
   .form-grid,
   .filters,
   .inline-option-grid,
+  .body-type-toggle,
   .period-filter-panel,
   .period-summary-grid,
   .period-record-grid,

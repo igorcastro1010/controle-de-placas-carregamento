@@ -125,12 +125,12 @@ export default function EditPlacaModal({ item, saving, error, onClose, onSave })
                 <span className="operation-title">Tipo de carroceria *</span>
                 <p>Marque se o veÃ­culo Ã© baÃº ou sider.</p>
               </div>
-              <div className="inline-option-grid">
-                <label className="checkbox-field operation-checkbox">
+              <div className="body-type-toggle">
+                <label className={`body-type-option ${form.tipo_carroceria === 'BAU' ? 'active' : ''}`}>
                   <input type="radio" name="edit_tipo_carroceria" value="BAU" checked={form.tipo_carroceria === 'BAU'} onChange={(event) => updateField('tipo_carroceria', event.target.value)} />
                   <span>BaÃº</span>
                 </label>
-                <label className="checkbox-field operation-checkbox">
+                <label className={`body-type-option ${form.tipo_carroceria === 'SIDER' ? 'active' : ''}`}>
                   <input type="radio" name="edit_tipo_carroceria" value="SIDER" checked={form.tipo_carroceria === 'SIDER'} onChange={(event) => updateField('tipo_carroceria', event.target.value)} />
                   <span>Sider</span>
                 </label>
