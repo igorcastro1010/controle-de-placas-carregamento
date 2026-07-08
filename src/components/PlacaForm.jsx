@@ -20,14 +20,6 @@ const initialForm = {
 
 const upperInputFields = new Set(['placa', 'placa_cavalo', 'placa_carreta', 'motorista', 'telefone', 'rota_1', 'rota_2', 'rota_3', 'ocorrido']);
 
-function FieldHintSpacer() {
-  return (
-    <small className="field-hint field-hint-placeholder" aria-hidden="true">
-      &nbsp;
-    </small>
-  );
-}
-
 export default function PlacaForm({ onSubmit, loading, error, embedded = false }) {
   const [form, setForm] = useState(initialForm);
   const [lookupStatus, setLookupStatus] = useState('');
@@ -135,14 +127,12 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
             <option value="Truck">Truck</option>
             <option value="Carreta">Carreta</option>
           </select>
-          <FieldHintSpacer />
         </label>
 
         {!isCarreta && (
           <label>
             Placa *
             <input required value={form.placa} onChange={(event) => updateField('placa', event.target.value)} placeholder="Digite a placa" />
-            <small className="field-hint">Digite uma placa ja usada para preencher automaticamente.</small>
           </label>
         )}
 
@@ -150,7 +140,6 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           <label>
             Placa do cavalo *
             <input required value={form.placa_cavalo} onChange={(event) => updateField('placa_cavalo', event.target.value)} placeholder="Digite a placa do cavalo" />
-            <small className="field-hint">Digite uma placa ja usada para preencher automaticamente.</small>
           </label>
         )}
 
@@ -158,14 +147,12 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           <label>
             Placa da carreta *
             <input required value={form.placa_carreta} onChange={(event) => updateField('placa_carreta', event.target.value)} placeholder="Digite a placa da carreta" />
-            <FieldHintSpacer />
           </label>
         )}
 
         <label>
           Motorista *
           <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} placeholder="Digite o nome do motorista" />
-          {!isCarreta && <FieldHintSpacer />}
         </label>
 
         <section className="operation-section body-type-section full-width" aria-label="Tipo de carroceria">
