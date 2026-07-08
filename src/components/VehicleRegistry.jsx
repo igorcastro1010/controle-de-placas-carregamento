@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import { fetchVeiculosMotoristas, formatDateTime } from '../services/placasService';
+import { fetchVeiculosMotoristas, formatBodyType, formatDateTime } from '../services/placasService';
 
 const emptyFilters = {
   placa: '',
@@ -31,6 +31,10 @@ function VehicleCard({ item }) {
         <div>
           <span>Telefone</span>
           <strong>{item.telefone || '-'}</strong>
+        </div>
+        <div>
+          <span>Carroceria</span>
+          <strong>{formatBodyType(item.tipo_carroceria)}</strong>
         </div>
         <div>
           <span>Rotas</span>

@@ -4,6 +4,7 @@ import { findVeiculoMotoristaByPlate, normalizePlate, toUpperText } from '../ser
 
 const initialForm = {
   tipo_veiculo: 'Truck',
+  tipo_carroceria: 'BAU',
   placa: '',
   placa_cavalo: '',
   placa_carreta: '',
@@ -68,6 +69,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           return {
             ...current,
             tipo_veiculo: savedTipoVeiculo,
+            tipo_carroceria: savedRegistration.tipo_carroceria || current.tipo_carroceria || 'BAU',
             placa: savedIsCarreta ? toUpperText(savedRegistration.placa_cavalo || savedRegistration.placa) : toUpperText(savedRegistration.placa),
             placa_cavalo: savedIsCarreta ? toUpperText(savedRegistration.placa_cavalo || savedRegistration.placa) : '',
             placa_carreta: savedIsCarreta ? toUpperText(savedRegistration.placa_carreta) : '',
@@ -165,6 +167,23 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} placeholder="Digite o nome do motorista" />
           {!isCarreta && <FieldHintSpacer />}
         </label>
+
+        <section className="operation-section body-type-section full-width" aria-label="Tipo de carroceria">
+          <div>
+            <span className="operation-title">Tipo de carroceria *</span>
+            <p>Marque se o veículo é baú ou sider.</p>
+          </div>
+          <div className="inline-option-grid">
+            <label className="checkbox-field operation-checkbox">
+              <input type="radio" name="tipo_carroceria" value="BAU" checked={form.tipo_carroceria === 'BAU'} onChange={(event) => updateField('tipo_carroceria', event.target.value)} />
+              <span>Baú</span>
+            </label>
+            <label className="checkbox-field operation-checkbox">
+              <input type="radio" name="tipo_carroceria" value="SIDER" checked={form.tipo_carroceria === 'SIDER'} onChange={(event) => updateField('tipo_carroceria', event.target.value)} />
+              <span>Sider</span>
+            </label>
+          </div>
+        </section>
 
         {lookupStatus && (
           <div className="auto-fill-note full-width">

@@ -7,6 +7,7 @@ create table if not exists public.placas (
   ordem integer not null,
   placa text not null,
   tipo_veiculo text default 'Truck',
+  tipo_carroceria text default 'BAU',
   placa_cavalo text,
   placa_carreta text,
   entrega_local boolean default false,
@@ -56,6 +57,9 @@ create index if not exists placas_status_idx on public.placas (status);
 create index if not exists placas_data_idx on public.placas (data);
 create index if not exists placas_responsavel_id_idx on public.placas (responsavel_id);
 create index if not exists placas_responsavel_email_idx on public.placas (responsavel_email);
+
+alter table public.placas add column if not exists tipo_carroceria text default 'BAU';
+update public.placas set tipo_carroceria = 'BAU' where tipo_carroceria is null;
 
 create or replace function public.set_placas_updated_at()
 returns trigger
@@ -139,6 +143,7 @@ using (
 create table if not exists public.veiculos_motoristas (
   id uuid primary key default gen_random_uuid(),
   tipo_veiculo text,
+  tipo_carroceria text,
   placa text,
   placa_normalizada text,
   placa_cavalo text,
@@ -163,6 +168,8 @@ create table if not exists public.veiculos_motoristas (
 alter table public.veiculos_motoristas add column if not exists placa_normalizada text;
 alter table public.veiculos_motoristas add column if not exists placa_cavalo_normalizada text;
 alter table public.veiculos_motoristas add column if not exists placa_carreta_normalizada text;
+alter table public.veiculos_motoristas add column if not exists tipo_carroceria text;
+update public.veiculos_motoristas set tipo_carroceria = 'BAU' where tipo_carroceria is null;
 
 update public.veiculos_motoristas
 set

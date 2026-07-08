@@ -4,6 +4,7 @@ import {
   REPORT_STATUSES,
   STATUSES,
   fetchPeriodReport,
+  formatBodyType,
   formatCurrency,
   formatDate,
   formatDateTime,
@@ -213,6 +214,8 @@ export default function PeriodReport({ refreshSignal = 0 }) {
                   <h4>{item.placa || '-'}</h4>
                   <small>
                     {item.tipo_veiculo || 'Truck'}
+                    {' | '}
+                    {formatBodyType(item.tipo_carroceria)}
                     {item.tipo_veiculo === 'Carreta' ? ` | Cavalo: ${item.placa_cavalo || '-'} | Carreta: ${item.placa_carreta || '-'}` : ` | Placa: ${item.placa || '-'}`}
                   </small>
                   {(item.entrega_local || item.prioridade_local || item.retorno_local) && (

@@ -1,7 +1,7 @@
 import { RotateCcw, X } from 'lucide-react';
 import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
-import { formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
 
 const isClosed = (status) => ['Finalizado', 'Cancelado'].includes((status || '').trim());
 
@@ -40,8 +40,8 @@ function AuditInfo({ item }) {
 
 function VehicleLine({ item }) {
   if (!item) return 'Truck | Placa: -';
-  if (item.tipo_veiculo === 'Carreta') return `Carreta | Cavalo: ${item.placa_cavalo || item.placa || '-'} | Carreta: ${item.placa_carreta || '-'}`;
-  return `Truck | Placa: ${item.placa || '-'}`;
+  if (item.tipo_veiculo === 'Carreta') return `Carreta | ${formatBodyType(item.tipo_carroceria)} | Cavalo: ${item.placa_cavalo || item.placa || '-'} | Carreta: ${item.placa_carreta || '-'}`;
+  return `Truck | ${formatBodyType(item.tipo_carroceria)} | Placa: ${item.placa || '-'}`;
 }
 
 function LocalBadges({ item }) {

@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react';
 import PlateCard from './PlateCard';
 import StatusBadge from './StatusBadge';
-import { formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
 
 const columns = [
   'ordem',
@@ -9,6 +9,7 @@ const columns = [
   'hora',
   'placa',
   'tipo_veiculo',
+  'tipo_carroceria',
   'placa_cavalo',
   'placa_carreta',
   'entrega_local',
@@ -107,6 +108,7 @@ export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, 
                 <strong className="plate">{item.placa}</strong>
               </td>
               <td data-label="tipo_veiculo">{item.tipo_veiculo || 'Truck'}</td>
+              <td data-label="tipo_carroceria">{formatBodyType(item.tipo_carroceria)}</td>
               <td data-label="placa_cavalo">{item.placa_cavalo || '-'}</td>
               <td data-label="placa_carreta">{item.placa_carreta || '-'}</td>
               <td data-label="entrega_local">{item.entrega_local ? 'Sim' : 'Não'}</td>

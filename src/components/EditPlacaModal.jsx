@@ -4,6 +4,7 @@ import { toUpperText } from '../services/placasService';
 
 const emptyForm = {
   tipo_veiculo: 'Truck',
+  tipo_carroceria: 'BAU',
   placa: '',
   placa_cavalo: '',
   placa_carreta: '',
@@ -27,6 +28,7 @@ function formFromItem(item) {
   if (!item) return emptyForm;
   return {
     tipo_veiculo: item.tipo_veiculo || 'Truck',
+    tipo_carroceria: item.tipo_carroceria || 'BAU',
     placa: toUpperText(item.placa),
     placa_cavalo: toUpperText(item.placa_cavalo),
     placa_carreta: toUpperText(item.placa_carreta),
@@ -118,6 +120,22 @@ export default function EditPlacaModal({ item, saving, error, onClose, onSave })
               Motorista *
               <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} />
             </label>
+            <section className="operation-section body-type-section full-width" aria-label="Tipo de carroceria">
+              <div>
+                <span className="operation-title">Tipo de carroceria *</span>
+                <p>Marque se o veÃ­culo Ã© baÃº ou sider.</p>
+              </div>
+              <div className="inline-option-grid">
+                <label className="checkbox-field operation-checkbox">
+                  <input type="radio" name="edit_tipo_carroceria" value="BAU" checked={form.tipo_carroceria === 'BAU'} onChange={(event) => updateField('tipo_carroceria', event.target.value)} />
+                  <span>BaÃº</span>
+                </label>
+                <label className="checkbox-field operation-checkbox">
+                  <input type="radio" name="edit_tipo_carroceria" value="SIDER" checked={form.tipo_carroceria === 'SIDER'} onChange={(event) => updateField('tipo_carroceria', event.target.value)} />
+                  <span>Sider</span>
+                </label>
+              </div>
+            </section>
             <label>
               Telefone *
               <input required value={form.telefone} onChange={(event) => updateField('telefone', event.target.value)} />

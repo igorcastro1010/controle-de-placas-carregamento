@@ -110,6 +110,7 @@ export default function Dashboard({ user, onLogout }) {
   const describeCadastroChanges = (before, after) => {
     const labels = {
       tipo_veiculo: 'Tipo de veículo',
+      tipo_carroceria: 'Tipo de carroceria',
       placa: 'Placa',
       placa_cavalo: 'Placa do cavalo',
       placa_carreta: 'Placa da carreta',

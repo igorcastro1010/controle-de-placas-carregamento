@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
-import { formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
 
 const valueOrDash = (value) => value || <span className="soft-empty">-</span>;
 
@@ -76,7 +76,7 @@ function VehicleSummary({ item }) {
   if (item.tipo_veiculo === 'Carreta') {
     return (
       <small className="vehicle-summary">
-        <span>Carreta | Cavalo: {item.placa_cavalo || item.placa || '-'} | Carreta: {item.placa_carreta || '-'}</span>
+        <span>Carreta | {formatBodyType(item.tipo_carroceria)} | Cavalo: {item.placa_cavalo || item.placa || '-'} | Carreta: {item.placa_carreta || '-'}</span>
         {badges}
       </small>
     );
@@ -84,7 +84,7 @@ function VehicleSummary({ item }) {
 
   return (
     <small className="vehicle-summary">
-      <span>Truck | Placa: {item.placa || '-'}</span>
+      <span>Truck | {formatBodyType(item.tipo_carroceria)} | Placa: {item.placa || '-'}</span>
       {badges}
     </small>
   );

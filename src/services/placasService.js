@@ -84,6 +84,7 @@ function normalizeVehiclePayload(payload) {
 
   return {
     tipo_veiculo: tipoVeiculo,
+    tipo_carroceria: payload.tipo_carroceria || 'BAU',
     placa: toUpperText(placaBase),
     placa_cavalo: isCarreta ? toUpperOrNull(payload.placa_cavalo) : null,
     placa_carreta: isCarreta ? toUpperOrNull(payload.placa_carreta) : null,
@@ -112,6 +113,7 @@ function buildVehicleRegistrationPayload(source = {}) {
 
   return {
     tipo_veiculo: tipoVeiculo,
+    tipo_carroceria: source.tipo_carroceria || 'BAU',
     placa,
     placa_normalizada: normalizePlate(placa),
     placa_cavalo: placaCavalo,
@@ -284,6 +286,13 @@ export const formatCurrency = (value) => {
     style: 'currency',
     currency: 'BRL',
   }).format(numberValue);
+};
+
+export const formatBodyType = (value) => {
+  const bodyType = toUpperText(value);
+  if (bodyType === 'BAU') return 'Baú';
+  if (bodyType === 'SIDER' || bodyType === 'SYDER') return 'Sider';
+  return bodyType || '-';
 };
 
 export async function getSession() {

@@ -628,6 +628,12 @@ textarea {
   font-weight: 700;
 }
 
+.inline-option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  gap: 10px;
+}
+
 .operation-checkbox {
   align-items: flex-start;
   border: 1px solid #edf1f5;
@@ -1850,6 +1856,7 @@ td {
   .report-grid,
   .form-grid,
   .filters,
+  .inline-option-grid,
   .period-filter-panel,
   .period-summary-grid,
   .period-record-grid,
