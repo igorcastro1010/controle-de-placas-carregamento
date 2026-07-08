@@ -740,6 +740,53 @@ td {
   gap: 10px;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e3e8ef;
+  border-radius: 10px;
+  background: #fff;
+  color: #536070;
+  font-size: 0.86rem;
+  font-weight: 800;
+  margin-top: 12px;
+  padding: 10px 12px;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.pagination-button {
+  min-width: 36px;
+  min-height: 34px;
+  border: 1px solid #d6dde6;
+  border-radius: 8px;
+  background: #fff;
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 900;
+  padding: 7px 10px;
+}
+
+.pagination-button:hover:not(:disabled),
+.pagination-button.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1849a9;
+}
+
+.pagination-button:disabled {
+  background: #f8fafc;
+  color: #98a2b3;
+}
+
 .queue-split-layout {
   display: grid;
   gap: 18px;
@@ -1928,6 +1975,17 @@ td {
 
   .details-record-header {
     flex-direction: column;
+  }
+
+  .pagination-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: stretch;
   }
 
   .details-record-grid {

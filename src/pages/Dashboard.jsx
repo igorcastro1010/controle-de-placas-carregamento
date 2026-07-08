@@ -816,7 +816,7 @@ export default function Dashboard({ user, onLogout }) {
           </>
         ) : (
           <>
-            <Filters finalizados filters={finishedFilters} onChange={setFinishedFilters} onClear={() => setFinishedFilters({ data: '', busca: '' })} />
+            <Filters finalizados filters={finishedFilters} onChange={setFinishedFilters} onClear={() => setFinishedFilters({ data: '', busca: '', tipo_veiculo: '' })} />
             {loading ? (
               <div className="empty-state">Carregando finalizados...</div>
             ) : (
