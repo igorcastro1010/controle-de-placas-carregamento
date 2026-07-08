@@ -324,6 +324,7 @@ export async function fetchPlacas({ finalizados = false, filters = {}, scope = '
 
   if (filters.placa) query = query.or(`placa.ilike.%${filters.placa}%,placa_cavalo.ilike.%${filters.placa}%,placa_carreta.ilike.%${filters.placa}%`);
   if (filters.motorista) query = query.ilike('motorista', `%${filters.motorista}%`);
+  if (filters.tipo_veiculo) query = query.eq('tipo_veiculo', filters.tipo_veiculo);
   if (filters.status) query = query.eq('status', filters.status);
   if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
   if (filters.data) query = query.eq('data', filters.data);

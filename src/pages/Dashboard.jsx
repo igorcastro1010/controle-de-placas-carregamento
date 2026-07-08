@@ -38,6 +38,7 @@ import { supabase } from '../services/supabaseClient';
 const emptyFilters = {
   placa: '',
   motorista: '',
+  tipo_veiculo: '',
   status: '',
   responsavel: '',
   data: '',
@@ -48,6 +49,7 @@ const emptyFilters = {
 const emptyFinishedFilters = {
   data: todayISO(),
   busca: '',
+  tipo_veiculo: '',
 };
 
 export default function Dashboard({ user, onLogout }) {
