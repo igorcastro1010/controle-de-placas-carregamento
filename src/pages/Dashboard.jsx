@@ -15,6 +15,7 @@ import ReopenPlacaModal from '../components/ReopenPlacaModal';
 import ReportCards from '../components/ReportCards';
 import VehicleRegistry from '../components/VehicleRegistry';
 import {
+  cancelCargaAndReturnToQueue,
   createPlaca,
   currentTime,
   addPrioridadeLocal,
@@ -351,7 +352,6 @@ export default function Dashboard({ user, onLogout }) {
         chegou: { status: 'Chegou' },
         carregando: { status: 'Carregando' },
         finalizar: { status: 'Finalizado', finalizado_por: user.email, finalizado_em: new Date().toISOString() },
-        cancelar: { status: 'Cancelado', cancelado_por: user.email, cancelado_em: new Date().toISOString() },
       };
 
       if (action === 'nao_atendeu') {
@@ -571,19 +571,16 @@ export default function Dashboard({ user, onLogout }) {
     setError('');
     try {
       const cancelReason = toUpperText(reason);
-      const cancelNote = `[Cancelamento] ${cancelReason}`;
+      const cancelNote = `[Carga cancelada] ${cancelReason}`;
       const ocorrido = item.ocorrido ? `${item.ocorrido}\n${cancelNote}` : cancelNote;
-      const updated = await updatePlaca(item.id, {
-        status: 'Cancelado',
-        cancelado_por: user.email,
-        cancelado_em: new Date().toISOString(),
+      const updated = await cancelCargaAndReturnToQueue(item, {
         ocorrido,
       });
       await safeRegisterAudit({
         placaId: item.id,
-        acao: 'Cancelado',
+        acao: 'Carga cancelada',
         statusAnterior: item.status,
-        statusNovo: 'Cancelado',
+        statusNovo: 'Aguardando',
         ordemAnterior: item.ordem,
         ordemNova: updated.ordem,
         detalhes: `Motivo: ${cancelReason}`,
@@ -591,8 +588,9 @@ export default function Dashboard({ user, onLogout }) {
       setCancelingItem(null);
       await loadData();
       if (selectedReportCard) await loadReportDetails();
+      showSuccess('Carga cancelada. Motorista voltou para a fila.');
     } catch (err) {
-      setError(err.message || 'Não foi possível cancelar a marcação.');
+      setError(err.message || 'Não foi possível cancelar a carga.');
     } finally {
       setCancelSaving(false);
     }

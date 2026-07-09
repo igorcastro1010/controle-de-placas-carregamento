@@ -170,9 +170,9 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
             <CheckCircle2 size={14} />
             Finalizar
           </ActionButton>
-          <ActionButton className="danger-soft" title="Cancelar" disabled={disabled} onClick={() => onAction(item, 'cancelar')}>
+          <ActionButton className="danger-soft" title="Carga cancelada" disabled={disabled} onClick={() => onAction(item, 'cancelar')}>
             <X size={14} />
-            Cancelar
+            Carga cancelada
           </ActionButton>
         </div>
       )}
@@ -238,7 +238,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                     </button>
                     <button className="menu-danger" type="button" onClick={() => handleMenuClick(() => onAction(item, 'cancelar'))}>
                       <X size={14} />
-                      Cancelar
+                      Carga cancelada
                     </button>
                   </>
                 )}

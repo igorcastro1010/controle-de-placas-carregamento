@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { toUpperText } from '../services/placasService';
 
-const reasons = ['Motorista não compareceu', 'Erro de cadastro', 'Cliente cancelou', 'Duplicidade', 'Outro'];
+const reasons = ['Motorista nao compareceu', 'Erro de cadastro', 'Cliente cancelou', 'Duplicidade', 'Outro'];
 
 export default function CancelPlacaModal({ item, saving, onClose, onConfirm }) {
   const [reason, setReason] = useState('');
@@ -31,18 +31,18 @@ export default function CancelPlacaModal({ item, saving, onClose, onConfirm }) {
       <section className="form-modal cancel-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title" onClick={(event) => event.stopPropagation()}>
         <header className="details-header">
           <div>
-            <span className="eyebrow">Cancelar</span>
-            <h2 id="cancel-modal-title">Cancelar marcação</h2>
-            <p>Informe o motivo do cancelamento para continuar.</p>
+            <span className="eyebrow">Carga cancelada</span>
+            <h2 id="cancel-modal-title">Carga cancelada</h2>
+            <p>Informe o motivo para devolver o motorista para a fila.</p>
           </div>
-          <button className="icon-only" type="button" onClick={onClose} aria-label="Fechar cancelamento">
+          <button className="icon-only" type="button" onClick={onClose} aria-label="Fechar carga cancelada">
             <X size={20} aria-hidden="true" />
           </button>
         </header>
 
         <form className="modal-form" onSubmit={handleSubmit}>
           <label>
-            Motivo do cancelamento *
+            Motivo da carga cancelada *
             <select required value={reason} onChange={(event) => setReason(event.target.value)}>
               <option value="">Selecione um motivo</option>
               {reasons.map((itemReason) => (
@@ -54,8 +54,8 @@ export default function CancelPlacaModal({ item, saving, onClose, onConfirm }) {
           </label>
 
           <label>
-            Observação
-            <textarea value={details} onChange={(event) => setDetails(event.target.value.toUpperCase())} rows="4" placeholder="Detalhe o motivo, se necessário" />
+            Observacao
+            <textarea value={details} onChange={(event) => setDetails(event.target.value.toUpperCase())} rows="4" placeholder="Detalhe o motivo, se necessario" />
           </label>
 
           <div className="modal-actions">
@@ -63,7 +63,7 @@ export default function CancelPlacaModal({ item, saving, onClose, onConfirm }) {
               Voltar
             </button>
             <button className="icon-text danger" type="submit" disabled={!canConfirm || saving}>
-              {saving ? 'Cancelando...' : 'Confirmar cancelamento'}
+              {saving ? 'Devolvendo...' : 'Confirmar carga cancelada'}
             </button>
           </div>
         </form>

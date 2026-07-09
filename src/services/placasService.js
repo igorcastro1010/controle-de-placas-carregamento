@@ -528,6 +528,21 @@ export async function moveToEnd(item) {
   return updatePlaca(item.id, { ordem: maxQueueOrder + 1 });
 }
 
+export async function cancelCargaAndReturnToQueue(item, payload = {}) {
+  const previousOrder = Number(item?.ordem || 0);
+  const updated = await updatePlaca(item.id, {
+    ...payload,
+    status: 'Aguardando',
+    cancelado_por: null,
+    cancelado_em: null,
+  });
+
+  if (previousOrder > 0) return updated;
+
+  console.warn('Carga cancelada sem ordem anterior salva; motorista sera enviado para o fim da fila.', item?.id);
+  return moveToEnd(updated);
+}
+
 export async function addPrioridadeLocal(item, user, reason = 'RETORNO DE ENTREGA LOCAL') {
   const { data: priorityItems, error: orderError } = await supabase
     .from('placas')
