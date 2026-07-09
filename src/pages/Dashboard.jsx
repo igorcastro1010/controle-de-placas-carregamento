@@ -9,6 +9,7 @@ import Filters from '../components/Filters';
 import PlacaForm from '../components/PlacaForm';
 import PlacasTable from '../components/PlacasTable';
 import PeriodReport from '../components/PeriodReport';
+import OutroLocalModal from '../components/OutroLocalModal';
 import PriorityLocalModal from '../components/PriorityLocalModal';
 import ReopenPlacaModal from '../components/ReopenPlacaModal';
 import ReportCards from '../components/ReportCards';
@@ -87,6 +88,8 @@ export default function Dashboard({ user, onLogout }) {
   const [cancelSaving, setCancelSaving] = useState(false);
   const [chamadoItem, setChamadoItem] = useState(null);
   const [chamadoSaving, setChamadoSaving] = useState(false);
+  const [outroLocalItem, setOutroLocalItem] = useState(null);
+  const [outroLocalSaving, setOutroLocalSaving] = useState(false);
   const [reopeningItem, setReopeningItem] = useState(null);
   const [reopenSaving, setReopenSaving] = useState(false);
   const [priorityItem, setPriorityItem] = useState(null);
@@ -127,6 +130,8 @@ export default function Dashboard({ user, onLogout }) {
       rota_3: 'Rota 3',
       cidade_destino: 'Cidade destino',
       valor_frete_carreteiro: 'Frete carreteiro',
+      carregado_outro_local_local: 'Local outro carregamento',
+      carregado_outro_local_motivo: 'Motivo outro carregamento',
       ocorrido: 'Ocorrido',
     };
 
@@ -364,6 +369,8 @@ export default function Dashboard({ user, onLogout }) {
         setCancelingItem(item);
       } else if (action === 'chamado') {
         setChamadoItem(item);
+      } else if (action === 'outro_local') {
+        setOutroLocalItem(item);
       } else {
         const updated = await updatePlaca(item.id, actionMap[action]);
         const auditActionMap = {
@@ -384,7 +391,7 @@ export default function Dashboard({ user, onLogout }) {
         });
       }
 
-      if (action !== 'cancelar' && action !== 'chamado') {
+      if (action !== 'cancelar' && action !== 'chamado' && action !== 'outro_local') {
         await loadData();
         if (selectedReportCard) await loadReportDetails();
       }
@@ -421,6 +428,40 @@ export default function Dashboard({ user, onLogout }) {
       setError(err.message || 'Não foi possível marcar como chamado.');
     } finally {
       setChamadoSaving(false);
+    }
+  };
+
+  const handleConfirmOutroLocal = async (item, outroLocalPayload) => {
+    setOutroLocalSaving(true);
+    setError('');
+    try {
+      const note = `[Carregado em outro local] Local: ${outroLocalPayload.local} | Motivo: ${outroLocalPayload.motivo}`;
+      const ocorrido = item.ocorrido ? `${item.ocorrido}\n${note}` : note;
+      const updated = await updatePlaca(item.id, {
+        status: 'Carregado em outro local',
+        carregado_outro_local_por: user.email,
+        carregado_outro_local_em: new Date().toISOString(),
+        carregado_outro_local_local: outroLocalPayload.local,
+        carregado_outro_local_motivo: outroLocalPayload.motivo,
+        ocorrido,
+      });
+      await safeRegisterAudit({
+        placaId: item.id,
+        acao: 'Carregado em outro local',
+        statusAnterior: item.status,
+        statusNovo: 'Carregado em outro local',
+        ordemAnterior: item.ordem,
+        ordemNova: updated.ordem,
+        detalhes: `Local: ${outroLocalPayload.local}; Motivo: ${outroLocalPayload.motivo}`,
+      });
+      setOutroLocalItem(null);
+      await loadData();
+      if (selectedReportCard) await loadReportDetails();
+      showSuccess('Registro encerrado como carregado em outro local.');
+    } catch (err) {
+      setError(err.message || 'Não foi possível marcar como carregado em outro local.');
+    } finally {
+      setOutroLocalSaving(false);
     }
   };
 
@@ -695,7 +736,7 @@ export default function Dashboard({ user, onLogout }) {
     if (activeTab === 'fila') return 'Fila de Chamada';
     if (activeTab === 'relatorio') return 'Relatório por período';
     if (activeTab === 'veiculos') return 'Cadastro de Veículos';
-    return 'Finalizados e Cancelados';
+    return 'Encerrados';
   }, [activeTab]);
 
   return (
@@ -748,7 +789,7 @@ export default function Dashboard({ user, onLogout }) {
               Fila de Chamada
             </button>
             <button className={activeTab === 'finalizados' ? 'active' : ''} onClick={() => setActiveTab('finalizados')} type="button">
-              Finalizados
+              Encerrados
             </button>
             <button className={activeTab === 'relatorio' ? 'active' : ''} onClick={() => setActiveTab('relatorio')} type="button">
               Relatório
@@ -852,6 +893,7 @@ export default function Dashboard({ user, onLogout }) {
       />
       <EditPlacaModal item={editingItem} saving={editSaving} error={editError} onClose={() => setEditingItem(null)} onSave={handleSaveEdit} />
       <ChamadoModal item={chamadoItem} saving={chamadoSaving} onClose={() => setChamadoItem(null)} onConfirm={handleConfirmChamado} />
+      <OutroLocalModal item={outroLocalItem} saving={outroLocalSaving} onClose={() => setOutroLocalItem(null)} onConfirm={handleConfirmOutroLocal} />
       <CancelPlacaModal item={cancelingItem} saving={cancelSaving} onClose={() => setCancelingItem(null)} onConfirm={handleConfirmCancel} />
       <ReopenPlacaModal item={reopeningItem} saving={reopenSaving} onClose={() => setReopeningItem(null)} onConfirm={handleConfirmReopen} />
       <PriorityLocalModal item={priorityItem} saving={prioritySaving} onClose={() => setPriorityItem(null)} onConfirm={handleConfirmPriority} />

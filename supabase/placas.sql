@@ -34,6 +34,10 @@ create table if not exists public.placas (
   finalizado_em timestamp with time zone,
   cancelado_por text,
   cancelado_em timestamp with time zone,
+  carregado_outro_local_por text,
+  carregado_outro_local_em timestamp with time zone,
+  carregado_outro_local_motivo text,
+  carregado_outro_local_local text,
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now(),
   constraint placas_status_check check (
@@ -47,7 +51,8 @@ create table if not exists public.placas (
       'Chegou',
       'Carregando',
       'Finalizado',
-      'Cancelado'
+      'Cancelado',
+      'Carregado em outro local'
     )
   )
 );
@@ -59,7 +64,29 @@ create index if not exists placas_responsavel_id_idx on public.placas (responsav
 create index if not exists placas_responsavel_email_idx on public.placas (responsavel_email);
 
 alter table public.placas add column if not exists tipo_carroceria text default 'BAU';
+alter table public.placas add column if not exists carregado_outro_local_por text;
+alter table public.placas add column if not exists carregado_outro_local_em timestamp with time zone;
+alter table public.placas add column if not exists carregado_outro_local_motivo text;
+alter table public.placas add column if not exists carregado_outro_local_local text;
 update public.placas set tipo_carroceria = 'BAU' where tipo_carroceria is null;
+
+alter table public.placas drop constraint if exists placas_status_check;
+alter table public.placas
+add constraint placas_status_check check (
+  status in (
+    'Aguardando',
+    '1ª ligação feita',
+    '2ª ligação feita',
+    '3ª ligação feita',
+    'Não atendeu',
+    'Chamado',
+    'Chegou',
+    'Carregando',
+    'Finalizado',
+    'Cancelado',
+    'Carregado em outro local'
+  )
+);
 
 create or replace function public.set_placas_updated_at()
 returns trigger

@@ -72,7 +72,7 @@ function ActiveQueueCards({ items, pageItems, pageStartIndex, onAction, onMove, 
             key={item.id}
             item={item}
             index={index}
-            visualOrder={index + 1}
+            visualOrder={item._fila_posicao_real || index + 1}
             itemsLength={items.length}
             busyId={busyId}
             canViewAudit={canViewAudit}
@@ -104,6 +104,17 @@ function AuditInfo({ item }) {
       <div className="audit-info">
         <span>Cancelado por: {item.cancelado_por || '-'}</span>
         <span>Cancelado em: {formatDateTime(item.cancelado_em)}</span>
+      </div>
+    );
+  }
+
+  if (item.status === 'Carregado em outro local') {
+    return (
+      <div className="audit-info">
+        <span>Baixado por: {item.carregado_outro_local_por || '-'}</span>
+        <span>Baixado em: {formatDateTime(item.carregado_outro_local_em)}</span>
+        <span>Local: {item.carregado_outro_local_local || '-'}</span>
+        <span>Motivo: {item.carregado_outro_local_motivo || '-'}</span>
       </div>
     );
   }

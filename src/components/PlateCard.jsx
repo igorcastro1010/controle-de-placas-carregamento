@@ -62,6 +62,17 @@ function AuditInfo({ item }) {
     );
   }
 
+  if (item.status === 'Carregado em outro local') {
+    return (
+      <div className="audit-info">
+        <span>Baixado por: {item.carregado_outro_local_por || '-'}</span>
+        <span>Baixado em: {formatDateTime(item.carregado_outro_local_em)}</span>
+        <span>Local: {item.carregado_outro_local_local || '-'}</span>
+        <span>Motivo: {item.carregado_outro_local_motivo || '-'}</span>
+      </div>
+    );
+  }
+
   return null;
 }
 
@@ -194,7 +205,7 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
           </InfoBlock>
         )}
 
-        {canViewAudit && ['Finalizado', 'Cancelado'].includes(item.status) && (
+        {canViewAudit && ['Finalizado', 'Cancelado', 'Carregado em outro local'].includes(item.status) && (
           <InfoBlock title="Auditoria">
             <AuditInfo item={item} />
           </InfoBlock>

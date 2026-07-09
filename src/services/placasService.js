@@ -11,9 +11,10 @@ export const STATUSES = [
   'Carregando',
   'Finalizado',
   'Cancelado',
+  'Carregado em outro local',
 ];
 
-export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
+export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado', 'Carregado em outro local'];
 export const STATUS_FILA_ATUAL = ['Aguardando', '1ª ligação feita', '2ª ligação feita', '3ª ligação feita', 'Não atendeu'];
 export const STATUS_EM_ANDAMENTO = ['Chamado', 'Chegou', 'Carregando'];
 export const MANAGERS = ['gerencia.ce@grupodago.com.br', 'operacional3.ce@grupodago.com.br'];
@@ -30,6 +31,7 @@ export const REPORT_STATUSES = [
   'Carregando',
   'Finalizado',
   'Cancelado',
+  'Carregado em outro local',
 ];
 
 export const normalizeStatus = (status) =>
@@ -73,6 +75,25 @@ export const sortByPriorityAndOrder = (items = []) =>
     if (priorityDiff !== 0) return priorityDiff;
     return (a.ordem || 0) - (b.ordem || 0);
   });
+
+function matchesPlacaFilters(item, filters = {}) {
+  const includesText = (value, search) => normalizeSearch(value).includes(normalizeSearch(search));
+  const placaTarget = [item.placa, item.placa_cavalo, item.placa_carreta].join(' ');
+  const searchTarget = [item.placa, item.placa_cavalo, item.placa_carreta, item.motorista].join(' ');
+
+  if (filters.placa && !includesText(placaTarget, filters.placa)) return false;
+  if (filters.motorista && !includesText(item.motorista, filters.motorista)) return false;
+  if (filters.tipo_veiculo && item.tipo_veiculo !== filters.tipo_veiculo) return false;
+  if (filters.status && normalizeStatus(item.status) !== normalizeStatus(filters.status)) return false;
+  if (filters.responsavel && !includesText(item.responsavel_email || item.responsavel, filters.responsavel)) return false;
+  if (filters.data && item.data !== filters.data) return false;
+  if (filters.busca && !includesText(searchTarget, filters.busca)) return false;
+  if (filters.entrega_local === 'sim' && !item.entrega_local) return false;
+  if (filters.entrega_local === 'nao' && item.entrega_local) return false;
+  if (filters.prioridade_local === 'sim' && !item.prioridade_local) return false;
+  if (filters.prioridade_local === 'nao' && item.prioridade_local) return false;
+  return true;
+}
 
 function normalizeVehiclePayload(payload) {
   const tipoVeiculo = payload.tipo_veiculo || 'Truck';
@@ -322,17 +343,19 @@ export async function fetchPlacas({ finalizados = false, filters = {}, scope = '
     query = query.not('status', 'in', inactiveStatusFilter());
   }
 
-  if (filters.placa) query = query.or(`placa.ilike.%${filters.placa}%,placa_cavalo.ilike.%${filters.placa}%,placa_carreta.ilike.%${filters.placa}%`);
-  if (filters.motorista) query = query.ilike('motorista', `%${filters.motorista}%`);
-  if (filters.tipo_veiculo) query = query.eq('tipo_veiculo', filters.tipo_veiculo);
-  if (filters.status) query = query.eq('status', filters.status);
-  if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
-  if (filters.data) query = query.eq('data', filters.data);
-  if (filters.busca) query = query.or(`placa.ilike.%${filters.busca}%,placa_cavalo.ilike.%${filters.busca}%,placa_carreta.ilike.%${filters.busca}%,motorista.ilike.%${filters.busca}%`);
-  if (filters.entrega_local === 'sim') query = query.eq('entrega_local', true);
-  if (filters.entrega_local === 'nao') query = query.eq('entrega_local', false);
-  if (filters.prioridade_local === 'sim') query = query.eq('prioridade_local', true);
-  if (filters.prioridade_local === 'nao') query = query.eq('prioridade_local', false);
+  if (finalizados) {
+    if (filters.placa) query = query.or(`placa.ilike.%${filters.placa}%,placa_cavalo.ilike.%${filters.placa}%,placa_carreta.ilike.%${filters.placa}%`);
+    if (filters.motorista) query = query.ilike('motorista', `%${filters.motorista}%`);
+    if (filters.tipo_veiculo) query = query.eq('tipo_veiculo', filters.tipo_veiculo);
+    if (filters.status) query = query.eq('status', filters.status);
+    if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
+    if (filters.data) query = query.eq('data', filters.data);
+    if (filters.busca) query = query.or(`placa.ilike.%${filters.busca}%,placa_cavalo.ilike.%${filters.busca}%,placa_carreta.ilike.%${filters.busca}%,motorista.ilike.%${filters.busca}%`);
+    if (filters.entrega_local === 'sim') query = query.eq('entrega_local', true);
+    if (filters.entrega_local === 'nao') query = query.eq('entrega_local', false);
+    if (filters.prioridade_local === 'sim') query = query.eq('prioridade_local', true);
+    if (filters.prioridade_local === 'nao') query = query.eq('prioridade_local', false);
+  }
 
   query = query.order(finalizados ? 'updated_at' : 'ordem', { ascending: !finalizados });
 
@@ -341,14 +364,19 @@ export async function fetchPlacas({ finalizados = false, filters = {}, scope = '
   if (finalizados) return data || [];
 
   if (scope === 'andamento') {
-    return (data || []).filter((item) => isStatusEmAndamento(item.status));
+    return (data || []).filter((item) => isStatusEmAndamento(item.status)).filter((item) => matchesPlacaFilters(item, filters));
   }
 
   if (scope === 'ativos') {
-    return data || [];
+    return (data || []).filter((item) => matchesPlacaFilters(item, filters));
   }
 
-  return sortByPriorityAndOrder((data || []).filter((item) => isStatusFilaAtual(item.status)));
+  const fullQueue = sortByPriorityAndOrder((data || []).filter((item) => isStatusFilaAtual(item.status))).map((item, index) => ({
+    ...item,
+    _fila_posicao_real: index + 1,
+  }));
+
+  return fullQueue.filter((item) => matchesPlacaFilters(item, filters));
 }
 
 export async function fetchTodayReport() {

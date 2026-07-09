@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   History,
   Loader,
+  MapPin,
   Megaphone,
   MoreHorizontal,
   Pencil,
@@ -42,7 +43,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
   const disabled = busyId === item.id;
   const isFirst = index === 0;
   const isLast = index === itemsLength - 1;
-  const isClosed = ['Finalizado', 'Cancelado'].includes((item.status || '').trim());
+  const isClosed = ['Finalizado', 'Cancelado', 'Carregado em outro local'].includes((item.status || '').trim());
   const statusKey = normalizeStatus(item.status);
   const isInProgress = ['chamado', 'chegou', 'carregando'].includes(statusKey);
 
@@ -66,7 +67,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
     }
 
     const width = 230;
-    const itemCount = isClosed ? (canManageQueue ? 2 : 0) : 6 + (canManageQueue ? 3 : 0) + (canViewAudit ? 1 : 0);
+    const itemCount = isClosed ? (canManageQueue ? 2 : 0) : 7 + (canManageQueue ? 3 : 0) + (canViewAudit ? 1 : 0);
     const estimatedHeight = Math.min(420, itemCount * 39 + 18);
     const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -216,6 +217,10 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                 <button type="button" onClick={() => handleMenuClick(() => onMove(item, index, 'end'))}>
                   <ArrowDownToLine size={14} />
                   Fim
+                </button>
+                <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'outro_local'))}>
+                  <MapPin size={14} />
+                  Carregou em outro local
                 </button>
                 {!isInProgress && (
                   <>

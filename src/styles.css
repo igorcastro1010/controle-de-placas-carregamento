@@ -441,6 +441,10 @@ textarea {
   border-left-color: #98a2b3;
 }
 
+.accent-other-location {
+  border-left-color: #f97316;
+}
+
 .placa-form,
 .queue-section {
   padding: 18px;
@@ -862,6 +866,10 @@ td {
 
 .plate-card:has(.status-canceled)::before {
   background: #98a2b3;
+}
+
+.plate-card:has(.status-other-location)::before {
+  background: #f97316;
 }
 
 .plate-card-header {
@@ -1291,6 +1299,11 @@ td {
 .status-canceled {
   background: #eef2f6;
   color: #475467;
+}
+
+.status-other-location {
+  background: #ffedd5;
+  color: #c2410c;
 }
 
 .status-neutral {

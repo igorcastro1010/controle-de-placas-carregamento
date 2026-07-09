@@ -242,6 +242,10 @@ export default function PeriodReport({ refreshSignal = 0 }) {
                 <DetailLine label="Finalizado em" value={formatDateTime(item.finalizado_em)} />
                 <DetailLine label="Cancelado por" value={item.cancelado_por} />
                 <DetailLine label="Cancelado em" value={formatDateTime(item.cancelado_em)} />
+                <DetailLine label="Outro local por" value={item.carregado_outro_local_por} />
+                <DetailLine label="Outro local em" value={formatDateTime(item.carregado_outro_local_em)} />
+                <DetailLine label="Local outro carregamento" value={item.carregado_outro_local_local} />
+                <DetailLine label="Motivo outro carregamento" value={item.carregado_outro_local_motivo} />
                 {item.ocorrido && <DetailLine label="Ocorrido" value={item.ocorrido} />}
               </div>
             </article>

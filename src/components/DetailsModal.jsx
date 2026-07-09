@@ -3,7 +3,7 @@ import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
 import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
 
-const isClosed = (status) => ['Finalizado', 'Cancelado'].includes((status || '').trim());
+const isClosed = (status) => ['Finalizado', 'Cancelado', 'Carregado em outro local'].includes((status || '').trim());
 
 function DetailField({ label, children }) {
   return (
@@ -31,6 +31,17 @@ function AuditInfo({ item }) {
       <div className="audit-info">
         <span>Cancelado por: {item.cancelado_por || '-'}</span>
         <span>Cancelado em: {formatDateTime(item.cancelado_em)}</span>
+      </div>
+    );
+  }
+
+  if (item.status === 'Carregado em outro local') {
+    return (
+      <div className="audit-info">
+        <span>Baixado por: {item.carregado_outro_local_por || '-'}</span>
+        <span>Baixado em: {formatDateTime(item.carregado_outro_local_em)}</span>
+        <span>Local: {item.carregado_outro_local_local || '-'}</span>
+        <span>Motivo: {item.carregado_outro_local_motivo || '-'}</span>
       </div>
     );
   }
