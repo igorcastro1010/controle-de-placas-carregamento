@@ -128,8 +128,6 @@ export default function Dashboard({ user, onLogout }) {
       rota_3: 'Rota 3',
       cidade_destino: 'Cidade destino',
       valor_frete_carreteiro: 'Frete carreteiro',
-      carregado_outro_local_local: 'Local outro carregamento',
-      carregado_outro_local_motivo: 'Motivo outro carregamento',
       ocorrido: 'Ocorrido',
     };
 
@@ -439,10 +437,8 @@ export default function Dashboard({ user, onLogout }) {
       const ocorrido = item.ocorrido ? `${item.ocorrido}\n${note}` : note;
       const updated = await updatePlaca(item.id, {
         status: 'Carregado em outro local',
-        carregado_outro_local_por: user.email,
-        carregado_outro_local_em: new Date().toISOString(),
-        carregado_outro_local_local: outroLocalPayload.local,
-        carregado_outro_local_motivo: outroLocalPayload.motivo,
+        finalizado_por: user.email,
+        finalizado_em: new Date().toISOString(),
         ocorrido,
       });
       await safeRegisterAudit({

@@ -38,10 +38,9 @@ function AuditInfo({ item }) {
   if (item.status === 'Carregado em outro local') {
     return (
       <div className="audit-info">
-        <span>Baixado por: {item.carregado_outro_local_por || '-'}</span>
-        <span>Baixado em: {formatDateTime(item.carregado_outro_local_em)}</span>
-        <span>Local: {item.carregado_outro_local_local || '-'}</span>
-        <span>Motivo: {item.carregado_outro_local_motivo || '-'}</span>
+        <span>Baixado por: {item.finalizado_por || '-'}</span>
+        <span>Baixado em: {formatDateTime(item.finalizado_em)}</span>
+        <span>Motivo: Carregou em outro local</span>
       </div>
     );
   }
