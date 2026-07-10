@@ -130,7 +130,7 @@ function OccurredText({ value }) {
   );
 }
 
-export default function PlateCard({ item, index, visualOrder, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onPriority }) {
+export default function PlateCard({ item, index, visualOrder, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onPriority, onOtherLocation }) {
   const rotas = [item.rota_1, item.rota_2, item.rota_3].filter(Boolean);
   const createdAt = buildCreatedAt(item);
   const updatedAt = item.updated_at ? new Date(item.updated_at) : createdAt;
@@ -224,6 +224,7 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
           onEdit={onEdit}
           onAudit={onAudit}
           onPriority={onPriority}
+          onOtherLocation={onOtherLocation}
         />
       </footer>
     </article>

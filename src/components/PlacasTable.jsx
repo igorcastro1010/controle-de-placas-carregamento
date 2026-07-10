@@ -61,7 +61,7 @@ function PaginationControls({ page, totalPages, totalItems, startItem, endItem, 
   );
 }
 
-function ActiveQueueCards({ items, pageItems, pageStartIndex, onAction, onMove, onEdit, onAudit, onPriority, busyId, canViewAudit, canManageQueue }) {
+function ActiveQueueCards({ items, pageItems, pageStartIndex, onAction, onMove, onEdit, onAudit, onPriority, onOtherLocation, busyId, canViewAudit, canManageQueue }) {
   return (
     <div className="queue-card-list">
       {pageItems.map((item, pageIndex) => {
@@ -82,6 +82,7 @@ function ActiveQueueCards({ items, pageItems, pageStartIndex, onAction, onMove, 
             onEdit={onEdit}
             onAudit={onAudit}
             onPriority={onPriority}
+            onOtherLocation={onOtherLocation}
           />
         );
       })}
@@ -121,7 +122,7 @@ function AuditInfo({ item }) {
   return <span className="muted">-</span>;
 }
 
-export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, onReopen, onPriority, finalizados = false, busyId, canViewAudit = false, canManageQueue = false }) {
+export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, onReopen, onPriority, onOtherLocation, finalizados = false, busyId, canViewAudit = false, canManageQueue = false }) {
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -141,7 +142,7 @@ export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, 
   if (!finalizados) {
     return (
       <>
-        <ActiveQueueCards items={items} pageItems={pageItems} pageStartIndex={pageStartIndex} onAction={onAction} onMove={onMove} onEdit={onEdit} onAudit={onAudit} onPriority={onPriority} busyId={busyId} canViewAudit={canViewAudit} canManageQueue={canManageQueue} />
+        <ActiveQueueCards items={items} pageItems={pageItems} pageStartIndex={pageStartIndex} onAction={onAction} onMove={onMove} onEdit={onEdit} onAudit={onAudit} onPriority={onPriority} onOtherLocation={onOtherLocation} busyId={busyId} canViewAudit={canViewAudit} canManageQueue={canManageQueue} />
         <PaginationControls page={currentPage} totalPages={totalPages} totalItems={items.length} startItem={startItem} endItem={endItem} onPageChange={setPage} />
       </>
     );

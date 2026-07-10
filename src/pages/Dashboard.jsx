@@ -427,6 +427,7 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleConfirmOutroLocal = async (item) => {
+    setBusyId(item.id);
     setError('');
     try {
       const outroLocalPayload = {
@@ -455,6 +456,8 @@ export default function Dashboard({ user, onLogout }) {
       showSuccess('Motorista removido da fila como carregou em outro local.');
     } catch (err) {
       setError(err.message || 'Não foi possível marcar como carregado em outro local.');
+    } finally {
+      setBusyId('');
     }
   };
 
@@ -818,6 +821,7 @@ export default function Dashboard({ user, onLogout }) {
                     onEdit={handleEdit}
                     onAudit={handleOpenAudit}
                     onPriority={handlePriorityAction}
+                    onOtherLocation={handleConfirmOutroLocal}
                     busyId={busyId}
                     canViewAudit={canViewAudit}
                     canManageQueue={canManageQueue}
@@ -838,6 +842,7 @@ export default function Dashboard({ user, onLogout }) {
                     onEdit={handleEdit}
                     onAudit={handleOpenAudit}
                     onPriority={handlePriorityAction}
+                    onOtherLocation={handleConfirmOutroLocal}
                     busyId={busyId}
                     canViewAudit={canViewAudit}
                     canManageQueue={canManageQueue}
@@ -852,7 +857,7 @@ export default function Dashboard({ user, onLogout }) {
             {loading ? (
               <div className="empty-state">Carregando finalizados...</div>
             ) : (
-              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} canManageQueue={canManageQueue} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={handleRequestReopen} onPriority={handlePriorityAction} busyId={busyId} />
+              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} canManageQueue={canManageQueue} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={handleRequestReopen} onPriority={handlePriorityAction} onOtherLocation={handleConfirmOutroLocal} busyId={busyId} />
             )}
           </>
         )}
@@ -874,6 +879,7 @@ export default function Dashboard({ user, onLogout }) {
         onAudit={handleOpenAudit}
         onReopen={handleRequestReopen}
         onPriority={handlePriorityAction}
+        onOtherLocation={handleConfirmOutroLocal}
         onDateChange={setDetailsDate}
         onSearchChange={setDetailsSearch}
         onClearFilters={() => {

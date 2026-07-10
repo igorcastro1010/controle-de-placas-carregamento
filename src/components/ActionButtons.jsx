@@ -35,7 +35,7 @@ const normalizeStatus = (status) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onReopen, onPriority }) {
+export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onReopen, onPriority, onOtherLocation }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState({});
   const menuRef = useRef(null);
@@ -218,7 +218,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                   <ArrowDownToLine size={14} />
                   Fim
                 </button>
-                <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'outro_local'))}>
+                <button type="button" onClick={() => handleMenuClick(() => (onOtherLocation ? onOtherLocation(item) : onAction(item, 'outro_local')))}>
                   <MapPin size={14} />
                   Carregou em outro local
                 </button>

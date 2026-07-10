@@ -83,6 +83,7 @@ export default function DetailsModal({
   onAudit,
   onReopen,
   onPriority,
+  onOtherLocation,
   busyId,
   onClose,
 }) {
@@ -193,6 +194,7 @@ export default function DetailsModal({
                       onEdit={onEdit}
                       onAudit={onAudit}
                       onPriority={onPriority}
+                      onOtherLocation={onOtherLocation}
                       onMove={(current, currentIndex, direction) => onMove(current, currentIndex, direction, safeItems)}
                     />
                   </div>
