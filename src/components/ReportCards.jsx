@@ -7,7 +7,7 @@ export const reportCards = [
   { key: 'Chegou', label: 'Chegou', group: 'Em Andamento', icon: PackageCheck, className: 'accent-arrived', status: 'Chegou' },
   { key: 'Carregando', label: 'Carregando', group: 'Em Andamento', icon: PackageOpen, className: 'accent-loading', status: 'Carregando' },
   { key: 'Finalizado', label: 'Finalizado', group: 'Encerrados', icon: CheckCircle2, className: 'accent-done', status: 'Finalizado' },
-  { key: 'Carregado em outro local', label: 'Outro local', group: 'Encerrados', icon: MapPin, className: 'accent-other-location', status: 'Carregado em outro local' },
+  { key: 'Carregado em outro local', label: 'Carregou em outro local', group: 'Encerrados', icon: MapPin, className: 'accent-other-location', status: 'Carregado em outro local' },
   { key: 'Não atendeu', label: 'Não atendeu', group: 'Fila de Chamada', icon: PhoneOff, className: 'accent-no-answer', status: 'Não atendeu' },
   { key: 'Cancelado', label: 'Cancelado', group: 'Encerrados', icon: XCircle, className: 'accent-canceled', status: 'Cancelado' },
 ];

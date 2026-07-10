@@ -9,7 +9,6 @@ import Filters from '../components/Filters';
 import PlacaForm from '../components/PlacaForm';
 import PlacasTable from '../components/PlacasTable';
 import PeriodReport from '../components/PeriodReport';
-import OutroLocalModal from '../components/OutroLocalModal';
 import PriorityLocalModal from '../components/PriorityLocalModal';
 import ReopenPlacaModal from '../components/ReopenPlacaModal';
 import ReportCards from '../components/ReportCards';
@@ -89,8 +88,6 @@ export default function Dashboard({ user, onLogout }) {
   const [cancelSaving, setCancelSaving] = useState(false);
   const [chamadoItem, setChamadoItem] = useState(null);
   const [chamadoSaving, setChamadoSaving] = useState(false);
-  const [outroLocalItem, setOutroLocalItem] = useState(null);
-  const [outroLocalSaving, setOutroLocalSaving] = useState(false);
   const [reopeningItem, setReopeningItem] = useState(null);
   const [reopenSaving, setReopenSaving] = useState(false);
   const [priorityItem, setPriorityItem] = useState(null);
@@ -370,7 +367,7 @@ export default function Dashboard({ user, onLogout }) {
       } else if (action === 'chamado') {
         setChamadoItem(item);
       } else if (action === 'outro_local') {
-        setOutroLocalItem(item);
+        await handleConfirmOutroLocal(item);
       } else {
         const updated = await updatePlaca(item.id, actionMap[action]);
         const auditActionMap = {
@@ -431,11 +428,14 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const handleConfirmOutroLocal = async (item, outroLocalPayload) => {
-    setOutroLocalSaving(true);
+  const handleConfirmOutroLocal = async (item) => {
     setError('');
     try {
-      const note = `[Carregado em outro local] Local: ${outroLocalPayload.local} | Motivo: ${outroLocalPayload.motivo}`;
+      const outroLocalPayload = {
+        local: 'Outro local',
+        motivo: 'Carregou em outro local',
+      };
+      const note = `[Carregou em outro local] ${outroLocalPayload.motivo}`;
       const ocorrido = item.ocorrido ? `${item.ocorrido}\n${note}` : note;
       const updated = await updatePlaca(item.id, {
         status: 'Carregado em outro local',
@@ -447,21 +447,18 @@ export default function Dashboard({ user, onLogout }) {
       });
       await safeRegisterAudit({
         placaId: item.id,
-        acao: 'Carregado em outro local',
+        acao: 'Carregou em outro local',
         statusAnterior: item.status,
         statusNovo: 'Carregado em outro local',
         ordemAnterior: item.ordem,
         ordemNova: updated.ordem,
-        detalhes: `Local: ${outroLocalPayload.local}; Motivo: ${outroLocalPayload.motivo}`,
+        detalhes: `Motivo: ${outroLocalPayload.motivo}`,
       });
-      setOutroLocalItem(null);
       await loadData();
       if (selectedReportCard) await loadReportDetails();
-      showSuccess('Registro encerrado como carregado em outro local.');
+      showSuccess('Motorista removido da fila como carregou em outro local.');
     } catch (err) {
       setError(err.message || 'Não foi possível marcar como carregado em outro local.');
-    } finally {
-      setOutroLocalSaving(false);
     }
   };
 
@@ -891,7 +888,6 @@ export default function Dashboard({ user, onLogout }) {
       />
       <EditPlacaModal item={editingItem} saving={editSaving} error={editError} onClose={() => setEditingItem(null)} onSave={handleSaveEdit} />
       <ChamadoModal item={chamadoItem} saving={chamadoSaving} onClose={() => setChamadoItem(null)} onConfirm={handleConfirmChamado} />
-      <OutroLocalModal item={outroLocalItem} saving={outroLocalSaving} onClose={() => setOutroLocalItem(null)} onConfirm={handleConfirmOutroLocal} />
       <CancelPlacaModal item={cancelingItem} saving={cancelSaving} onClose={() => setCancelingItem(null)} onConfirm={handleConfirmCancel} />
       <ReopenPlacaModal item={reopeningItem} saving={reopenSaving} onClose={() => setReopeningItem(null)} onConfirm={handleConfirmReopen} />
       <PriorityLocalModal item={priorityItem} saving={prioritySaving} onClose={() => setPriorityItem(null)} onConfirm={handleConfirmPriority} />
