@@ -1,7 +1,7 @@
 import { RotateCcw, X } from 'lucide-react';
 import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
-import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime, isOutroLocalRecord } from '../services/placasService';
 
 const isClosed = (status) => ['Finalizado', 'Cancelado', 'Carregado em outro local'].includes((status || '').trim());
 
@@ -17,6 +17,16 @@ function DetailField({ label, children }) {
 function AuditInfo({ item }) {
   if (!item) return null;
 
+  if (isOutroLocalRecord(item)) {
+    return (
+      <div className="audit-info">
+        <span>Baixado por: {item.finalizado_por || '-'}</span>
+        <span>Baixado em: {formatDateTime(item.finalizado_em)}</span>
+        <span>Motivo: Carregou em outro local</span>
+      </div>
+    );
+  }
+
   if (item.status === 'Finalizado') {
     return (
       <div className="audit-info">
@@ -31,16 +41,6 @@ function AuditInfo({ item }) {
       <div className="audit-info">
         <span>Cancelado por: {item.cancelado_por || '-'}</span>
         <span>Cancelado em: {formatDateTime(item.cancelado_em)}</span>
-      </div>
-    );
-  }
-
-  if (item.status === 'Carregado em outro local') {
-    return (
-      <div className="audit-info">
-        <span>Baixado por: {item.finalizado_por || '-'}</span>
-        <span>Baixado em: {formatDateTime(item.finalizado_em)}</span>
-        <span>Motivo: Carregou em outro local</span>
       </div>
     );
   }
@@ -136,7 +136,7 @@ export default function DetailsModal({
                     </small>
                     <LocalBadges item={item} />
                   </div>
-                  <StatusBadge status={item.status} />
+                  <StatusBadge status={isOutroLocalRecord(item) ? 'Carregado em outro local' : item.status} />
                 </header>
 
                 <div className="details-record-grid">

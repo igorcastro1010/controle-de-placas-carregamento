@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ActionButtons from './ActionButtons';
 import StatusBadge from './StatusBadge';
-import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime, isOutroLocalRecord } from '../services/placasService';
 
 const valueOrDash = (value) => value || <span className="soft-empty">-</span>;
 
@@ -44,6 +44,16 @@ function waitLevel(createdAt) {
 }
 
 function AuditInfo({ item }) {
+  if (isOutroLocalRecord(item)) {
+    return (
+      <div className="audit-info">
+        <span>Baixado por: {item.finalizado_por || '-'}</span>
+        <span>Baixado em: {formatDateTime(item.finalizado_em)}</span>
+        <span>Motivo: Carregou em outro local</span>
+      </div>
+    );
+  }
+
   if (item.status === 'Finalizado') {
     return (
       <div className="audit-info">
@@ -58,16 +68,6 @@ function AuditInfo({ item }) {
       <div className="audit-info">
         <span>Cancelado por: {item.cancelado_por || '-'}</span>
         <span>Cancelado em: {formatDateTime(item.cancelado_em)}</span>
-      </div>
-    );
-  }
-
-  if (item.status === 'Carregado em outro local') {
-    return (
-      <div className="audit-info">
-        <span>Baixado por: {item.finalizado_por || '-'}</span>
-        <span>Baixado em: {formatDateTime(item.finalizado_em)}</span>
-        <span>Motivo: Carregou em outro local</span>
       </div>
     );
   }
@@ -145,7 +145,7 @@ export default function PlateCard({ item, index, visualOrder, itemsLength, busyI
               <span className="queue-order">#{visualOrder}</span>
               <strong>{item.placa}</strong>
             </div>
-            <StatusBadge status={item.status} />
+            <StatusBadge status={isOutroLocalRecord(item) ? 'Carregado em outro local' : item.status} />
           </div>
           <VehicleSummary item={item} />
           <div className="plate-card-driver">

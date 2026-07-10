@@ -437,7 +437,7 @@ export default function Dashboard({ user, onLogout }) {
       const note = `[Carregou em outro local] ${outroLocalPayload.motivo}`;
       const ocorrido = item.ocorrido ? `${item.ocorrido}\n${note}` : note;
       const updated = await updatePlaca(item.id, {
-        status: 'Carregado em outro local',
+        status: 'Finalizado',
         finalizado_por: user.email,
         finalizado_em: new Date().toISOString(),
         ocorrido,
@@ -446,7 +446,7 @@ export default function Dashboard({ user, onLogout }) {
         placaId: item.id,
         acao: 'Carregou em outro local',
         statusAnterior: item.status,
-        statusNovo: 'Carregado em outro local',
+        statusNovo: 'Finalizado',
         ordemAnterior: item.ordem,
         ordemNova: updated.ordem,
         detalhes: `Motivo: ${outroLocalPayload.motivo}`,

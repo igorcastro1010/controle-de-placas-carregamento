@@ -11,10 +11,12 @@ export const STATUSES = [
   'Carregando',
   'Finalizado',
   'Cancelado',
-  'Carregado em outro local',
 ];
 
-export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado', 'Carregado em outro local'];
+export const OUTRO_LOCAL_STATUS = 'Carregado em outro local';
+export const OUTRO_LOCAL_LABEL = 'Carregou em outro local';
+
+export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
 export const STATUS_FILA_ATUAL = ['Aguardando', '1ª ligação feita', '2ª ligação feita', '3ª ligação feita', 'Não atendeu'];
 export const STATUS_EM_ANDAMENTO = ['Chamado', 'Chegou', 'Carregando'];
 export const MANAGERS = ['gerencia.ce@grupodago.com.br', 'operacional3.ce@grupodago.com.br'];
@@ -31,7 +33,7 @@ export const REPORT_STATUSES = [
   'Carregando',
   'Finalizado',
   'Cancelado',
-  'Carregado em outro local',
+  OUTRO_LOCAL_STATUS,
 ];
 
 export const normalizeStatus = (status) =>
@@ -58,6 +60,8 @@ export const normalizeSearch = (value) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
+
+export const isOutroLocalRecord = (item) => normalizeSearch(item?.ocorrido).includes(normalizeSearch(OUTRO_LOCAL_LABEL));
 
 export const isManager = (user) => MANAGERS.includes(String(user?.email || '').trim().toLowerCase());
 
@@ -380,7 +384,7 @@ export async function fetchPlacas({ finalizados = false, filters = {}, scope = '
 }
 
 export async function fetchTodayReport() {
-  const { data, error } = await supabase.from('placas').select('status, data');
+  const { data, error } = await supabase.from('placas').select('status, data, ocorrido');
   if (error) throw error;
 
   const initialReport = REPORT_STATUSES.reduce((acc, status) => {
@@ -390,6 +394,10 @@ export async function fetchTodayReport() {
 
   return (data || []).reduce((acc, item) => {
     if (item.data === todayISO()) acc.total += 1;
+    if (isOutroLocalRecord(item)) {
+      acc[OUTRO_LOCAL_STATUS] += 1;
+      return acc;
+    }
     const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
     if (reportStatus) acc[reportStatus] += 1;
     return acc;
@@ -407,6 +415,8 @@ export async function fetchReportDetails({ status, date, search } = {}) {
   const { data, error } = await query;
   if (error) throw error;
   if (!status) return data || [];
+  if (normalizeStatus(status) === normalizeStatus(OUTRO_LOCAL_STATUS)) return (data || []).filter(isOutroLocalRecord);
+  if (normalizeStatus(status) === normalizeStatus('Finalizado')) return (data || []).filter((item) => normalizeStatus(item.status) === normalizeStatus(status) && !isOutroLocalRecord(item));
   return (data || []).filter((item) => normalizeStatus(item.status) === normalizeStatus(status));
 }
 
@@ -417,7 +427,8 @@ export async function fetchPeriodReport(filters = {}) {
   const end = filters.end || filters.start || todayISO();
   query = query.gte('data', start).lte('data', end);
 
-  if (filters.status) query = query.eq('status', filters.status);
+  const shouldFilterStatusInMemory = Boolean(filters.status);
+  if (filters.status && normalizeStatus(filters.status) !== normalizeStatus(OUTRO_LOCAL_STATUS)) query = query.eq('status', filters.status);
   if (filters.tipo_veiculo) query = query.eq('tipo_veiculo', filters.tipo_veiculo);
   if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
   if (filters.entrega_local === 'sim') query = query.eq('entrega_local', true);
@@ -430,10 +441,20 @@ export async function fetchPeriodReport(filters = {}) {
   const { data, error } = await query;
   if (error) throw error;
 
-  if (!filters.search) return data || [];
+  let filteredData = data || [];
+
+  if (shouldFilterStatusInMemory) {
+    if (normalizeStatus(filters.status) === normalizeStatus(OUTRO_LOCAL_STATUS)) {
+      filteredData = filteredData.filter(isOutroLocalRecord);
+    } else if (normalizeStatus(filters.status) === normalizeStatus('Finalizado')) {
+      filteredData = filteredData.filter((item) => !isOutroLocalRecord(item));
+    }
+  }
+
+  if (!filters.search) return filteredData;
 
   const normalizedSearch = normalizeSearch(filters.search);
-  return (data || []).filter((item) => {
+  return filteredData.filter((item) => {
     const target = [item.placa, item.placa_cavalo, item.placa_carreta, item.motorista].map(normalizeSearch).join('');
     return target.includes(normalizedSearch);
   });

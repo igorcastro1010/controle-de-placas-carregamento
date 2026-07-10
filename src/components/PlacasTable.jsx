@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import PlateCard from './PlateCard';
 import StatusBadge from './StatusBadge';
-import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime } from '../services/placasService';
+import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime, isOutroLocalRecord } from '../services/placasService';
 
 const PAGE_SIZE = 10;
 
@@ -91,6 +91,16 @@ function ActiveQueueCards({ items, pageItems, pageStartIndex, onAction, onMove, 
 }
 
 function AuditInfo({ item }) {
+  if (isOutroLocalRecord(item)) {
+    return (
+      <div className="audit-info">
+        <span>Baixado por: {item.finalizado_por || '-'}</span>
+        <span>Baixado em: {formatDateTime(item.finalizado_em)}</span>
+        <span>Motivo: Carregou em outro local</span>
+      </div>
+    );
+  }
+
   if (item.status === 'Finalizado') {
     return (
       <div className="audit-info">
@@ -105,16 +115,6 @@ function AuditInfo({ item }) {
       <div className="audit-info">
         <span>Cancelado por: {item.cancelado_por || '-'}</span>
         <span>Cancelado em: {formatDateTime(item.cancelado_em)}</span>
-      </div>
-    );
-  }
-
-  if (item.status === 'Carregado em outro local') {
-    return (
-      <div className="audit-info">
-        <span>Baixado por: {item.finalizado_por || '-'}</span>
-        <span>Baixado em: {formatDateTime(item.finalizado_em)}</span>
-        <span>Motivo: Carregou em outro local</span>
       </div>
     );
   }
@@ -190,7 +190,7 @@ export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, 
                   <td data-label="segunda_ligacao">{formatTime(item.segunda_ligacao)}</td>
                   <td data-label="terceira_ligacao">{formatTime(item.terceira_ligacao)}</td>
                   <td data-label="status">
-                    <StatusBadge status={item.status} />
+                    <StatusBadge status={isOutroLocalRecord(item) ? 'Carregado em outro local' : item.status} />
                   </td>
                   <td data-label="responsavel">{item.responsavel_email || item.responsavel || '-'}</td>
                   <td data-label="ocorrido" className="notes-cell">

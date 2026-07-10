@@ -9,6 +9,7 @@ import {
   formatDate,
   formatDateTime,
   formatTime,
+  isOutroLocalRecord,
   normalizeStatus,
   todayISO,
 } from '../services/placasService';
@@ -77,8 +78,14 @@ export default function PeriodReport({ refreshSignal = 0 }) {
     const vehicleCounts = { Truck: 0, Carreta: 0 };
 
     items.forEach((item) => {
-      const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
-      if (reportStatus) statusCounts[reportStatus] += 1;
+      if (isOutroLocalRecord(item)) {
+        statusCounts['Carregado em outro local'] += 1;
+      } else if (normalizeStatus(item.status) === normalizeStatus('Finalizado')) {
+        statusCounts.Finalizado += 1;
+      } else {
+        const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
+        if (reportStatus) statusCounts[reportStatus] += 1;
+      }
       if (item.tipo_veiculo === 'Carreta') vehicleCounts.Carreta += 1;
       else vehicleCounts.Truck += 1;
     });
@@ -225,7 +232,7 @@ export default function PeriodReport({ refreshSignal = 0 }) {
                     </span>
                   )}
                 </div>
-                <StatusBadge status={item.status} />
+                <StatusBadge status={isOutroLocalRecord(item) ? 'Carregado em outro local' : item.status} />
               </header>
               <div className="period-record-grid">
                 <DetailLine label="Motorista" value={item.motorista} />
@@ -238,13 +245,13 @@ export default function PeriodReport({ refreshSignal = 0 }) {
                 />
                 <DetailLine label="Ligações" value={`1ª ${formatTime(item.primeira_ligacao)} | 2ª ${formatTime(item.segunda_ligacao)} | 3ª ${formatTime(item.terceira_ligacao)}`} />
                 <DetailLine label="Responsável" value={item.responsavel_email || item.responsavel} />
-                <DetailLine label="Finalizado por" value={item.finalizado_por} />
-                <DetailLine label="Finalizado em" value={formatDateTime(item.finalizado_em)} />
+                {!isOutroLocalRecord(item) && <DetailLine label="Finalizado por" value={item.finalizado_por} />}
+                {!isOutroLocalRecord(item) && <DetailLine label="Finalizado em" value={formatDateTime(item.finalizado_em)} />}
                 <DetailLine label="Cancelado por" value={item.cancelado_por} />
                 <DetailLine label="Cancelado em" value={formatDateTime(item.cancelado_em)} />
-                <DetailLine label="Carregou em outro local por" value={item.finalizado_por} />
-                <DetailLine label="Carregou em outro local em" value={formatDateTime(item.finalizado_em)} />
-                <DetailLine label="Motivo" value="Carregou em outro local" />
+                {isOutroLocalRecord(item) && <DetailLine label="Carregou em outro local por" value={item.finalizado_por} />}
+                {isOutroLocalRecord(item) && <DetailLine label="Carregou em outro local em" value={formatDateTime(item.finalizado_em)} />}
+                {isOutroLocalRecord(item) && <DetailLine label="Motivo" value="Carregou em outro local" />}
                 {item.ocorrido && <DetailLine label="Ocorrido" value={item.ocorrido} />}
               </div>
             </article>
