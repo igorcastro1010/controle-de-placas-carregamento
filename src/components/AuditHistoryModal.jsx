@@ -1,6 +1,10 @@
 import { X } from 'lucide-react';
 import { formatDateTime } from '../services/placasService';
 
+const movementActions = ['Movido para o fim', 'Não atendeu', 'Subiu posição', 'Desceu posição', 'Reabertura'];
+const isMovementAudit = (entry) => movementActions.includes(entry.acao);
+const hasMovementDetails = (entry) => String(entry.detalhes || '').startsWith('Movimento na fila');
+
 export default function AuditHistoryModal({ item, entries, loading, error, onClose }) {
   if (!item) return null;
 
@@ -38,7 +42,8 @@ export default function AuditHistoryModal({ item, entries, loading, error, onClo
                     Status: {entry.status_anterior || '-'} → {entry.status_novo || '-'}
                   </p>
                 )}
-                {(entry.ordem_anterior || entry.ordem_nova) && (
+                {isMovementAudit(entry) && !hasMovementDetails(entry) && <p className="audit-details">Movimento na fila registrado.</p>}
+                {(entry.ordem_anterior || entry.ordem_nova) && !isMovementAudit(entry) && (
                   <p>
                     Ordem: {entry.ordem_anterior ?? '-'} → {entry.ordem_nova ?? '-'}
                   </p>

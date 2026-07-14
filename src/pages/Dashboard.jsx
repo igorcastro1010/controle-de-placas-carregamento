@@ -19,6 +19,7 @@ import {
   currentTime,
   addPrioridadeLocal,
   fetchAuditoriaPlaca,
+  fetchFilaVisualPositions,
   fetchPlacas,
   fetchReportDetails,
   fetchTodayReport,
@@ -51,6 +52,18 @@ const emptyFinishedFilters = {
   data: todayISO(),
   busca: '',
   tipo_veiculo: '',
+};
+
+const movementDetails = (type, fromPosition, toPosition) => {
+  const fromText = fromPosition ? `#${fromPosition}` : '#-';
+  const toText = toPosition ? `#${toPosition}` : '#-';
+
+  if (type === 'nao_atendeu') return `Movimento na fila: estava em ${fromText} e foi para o final da fila (${toText})`;
+  if (type === 'end') return `Movimento na fila: estava em ${fromText} e foi para ${toText}`;
+  if (type === 'up') return `Movimento na fila: estava em ${fromText} e subiu para ${toText}`;
+  if (type === 'down') return `Movimento na fila: estava em ${fromText} e desceu para ${toText}`;
+  if (type === 'reopen') return `Movimento na fila: voltou para a fila na posição ${toText}`;
+  return 'Movimento na fila registrado.';
 };
 
 export default function Dashboard({ user, onLogout }) {
@@ -350,8 +363,10 @@ export default function Dashboard({ user, onLogout }) {
       };
 
       if (action === 'nao_atendeu') {
+        const beforePositions = await fetchFilaVisualPositions();
         await updatePlaca(item.id, { status: 'Não atendeu' });
         const moved = await moveToEnd(item);
+        const afterPositions = await fetchFilaVisualPositions();
         await safeRegisterAudit({
           placaId: item.id,
           acao: 'Não atendeu',
@@ -359,6 +374,7 @@ export default function Dashboard({ user, onLogout }) {
           statusNovo: 'Não atendeu',
           ordemAnterior: item.ordem,
           ordemNova: moved.ordem,
+          detalhes: movementDetails('nao_atendeu', beforePositions[item.id], afterPositions[item.id]),
         });
       } else if (action === 'cancelar') {
         setCancelingItem(item);
@@ -471,9 +487,10 @@ export default function Dashboard({ user, onLogout }) {
     setBusyId(item.id);
     setError('');
     try {
+      const beforePositions = await fetchFilaVisualPositions();
       if (direction === 'end') {
-        const maxOrder = sourceItems.reduce((max, sourceItem) => Math.max(max, sourceItem.ordem || 0), item.ordem || 0);
-        const moved = await updatePlaca(item.id, { ordem: maxOrder + 1 });
+        const moved = await moveToEnd(item);
+        const afterPositions = await fetchFilaVisualPositions();
         await safeRegisterAudit({
           placaId: item.id,
           acao: 'Movido para o fim',
@@ -481,11 +498,13 @@ export default function Dashboard({ user, onLogout }) {
           statusNovo: moved.status,
           ordemAnterior: item.ordem,
           ordemNova: moved.ordem,
+          detalhes: movementDetails('end', beforePositions[item.id], afterPositions[item.id]),
         });
       } else {
         const target = direction === 'up' ? sourceItems[index - 1] : sourceItems[index + 1];
         if (!target) return;
         await swapOrder(item, target);
+        const afterPositions = await fetchFilaVisualPositions();
         await safeRegisterAudit({
           placaId: item.id,
           acao: direction === 'up' ? 'Subiu posição' : 'Desceu posição',
@@ -493,7 +512,7 @@ export default function Dashboard({ user, onLogout }) {
           statusNovo: item.status,
           ordemAnterior: item.ordem,
           ordemNova: target.ordem,
-          detalhes: `Trocou posição com ${target.placa}.`,
+          detalhes: movementDetails(direction, beforePositions[item.id], afterPositions[item.id]),
         });
       }
       await loadData();
@@ -682,6 +701,7 @@ export default function Dashboard({ user, onLogout }) {
     try {
       const reopenReason = toUpperText(reason);
       const reopened = await reopenPlaca(item, reopenReason);
+      const afterPositions = await fetchFilaVisualPositions();
       await safeRegisterAudit({
         placaId: item.id,
         acao: 'Reabertura',
@@ -689,7 +709,7 @@ export default function Dashboard({ user, onLogout }) {
         statusNovo: 'Aguardando',
         ordemAnterior: item.ordem,
         ordemNova: reopened.ordem,
-        detalhes: `Motivo: ${reopenReason}`,
+        detalhes: `${movementDetails('reopen', null, afterPositions[item.id])}; Motivo: ${reopenReason}`,
       });
       showSuccess('Marcação reaberta e enviada para o fim da fila.');
       setReopeningItem(null);

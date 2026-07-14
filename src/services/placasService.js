@@ -489,6 +489,16 @@ export async function fetchAuditoriaPlaca(placaId) {
   return data || [];
 }
 
+export async function fetchFilaVisualPositions() {
+  const { data, error } = await supabase.from('placas').select('id, ordem, status, prioridade_local').not('status', 'in', inactiveStatusFilter()).order('ordem', { ascending: true });
+  if (error) throw error;
+
+  return sortByPriorityAndOrder((data || []).filter((item) => isStatusFilaAtual(item.status))).reduce((acc, item, index) => {
+    acc[item.id] = index + 1;
+    return acc;
+  }, {});
+}
+
 export async function createPlaca(payload, user) {
   const recordPayload = normalizeVehiclePayload(payload);
   await ensurePlateIsNotDuplicated(recordPayload);
