@@ -1,7 +1,7 @@
 import { CheckCircle2, Clock, MapPin, Megaphone, PackageCheck, PackageOpen, PhoneOff, Truck, XCircle } from 'lucide-react';
 
 export const reportCards = [
-  { key: 'total', label: 'Cadastros hoje', group: 'Fila de Chamada', icon: Truck, className: 'accent-total', defaultToday: true },
+  { key: 'total', label: 'Fila de Chamada', group: 'Fila de Chamada', icon: Truck, className: 'accent-total', status: 'Fila de Chamada' },
   { key: 'Aguardando', label: 'Aguardando', group: 'Fila de Chamada', icon: Clock, className: 'accent-waiting', status: 'Aguardando' },
   { key: 'Chamado', label: 'Chamado', group: 'Em Andamento', icon: Megaphone, className: 'accent-called', status: 'Chamado' },
   { key: 'Chegou', label: 'Chegou', group: 'Em Andamento', icon: PackageCheck, className: 'accent-arrived', status: 'Chegou' },

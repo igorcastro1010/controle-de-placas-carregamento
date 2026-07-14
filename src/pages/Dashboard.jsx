@@ -341,9 +341,9 @@ export default function Dashboard({ user, onLogout }) {
     try {
       const time = currentTime();
       const actionMap = {
-        primeira: { primeira_ligacao: time, status: '1ª ligação feita' },
-        segunda: { segunda_ligacao: time, status: '2ª ligação feita' },
-        terceira: { terceira_ligacao: time, status: '3ª ligação feita' },
+        primeira: { primeira_ligacao: time },
+        segunda: { segunda_ligacao: time },
+        terceira: { terceira_ligacao: time },
         chegou: { status: 'Chegou' },
         carregando: { status: 'Carregando' },
         finalizar: { status: 'Finalizado', finalizado_por: user.email, finalizado_em: new Date().toISOString() },
@@ -383,6 +383,7 @@ export default function Dashboard({ user, onLogout }) {
           statusNovo: updated.status,
           ordemAnterior: item.ordem,
           ordemNova: updated.ordem,
+          detalhes: ['primeira', 'segunda', 'terceira'].includes(action) ? `Horário salvo: ${time}` : undefined,
         });
       }
 

@@ -9,6 +9,7 @@ import {
   formatDate,
   formatDateTime,
   formatTime,
+  isLegacyCallStatus,
   isOutroLocalRecord,
   normalizeStatus,
   todayISO,
@@ -80,6 +81,8 @@ export default function PeriodReport({ refreshSignal = 0 }) {
     items.forEach((item) => {
       if (isOutroLocalRecord(item)) {
         statusCounts['Carregado em outro local'] += 1;
+      } else if (isLegacyCallStatus(item.status)) {
+        statusCounts.Aguardando += 1;
       } else if (normalizeStatus(item.status) === normalizeStatus('Finalizado')) {
         statusCounts.Finalizado += 1;
       } else {

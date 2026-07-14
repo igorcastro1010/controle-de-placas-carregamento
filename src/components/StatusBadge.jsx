@@ -16,6 +16,10 @@ const statusClassMap = {
   'carregado em outro local': 'status-other-location',
 };
 
+const legacyCallStatuses = ['1ª ligação feita', '2ª ligação feita', '3ª ligação feita'];
+const displayStatus = (status) => (legacyCallStatuses.some((item) => normalizeStatus(item) === normalizeStatus(status)) ? 'Aguardando' : status);
+
 export default function StatusBadge({ status }) {
-  return <span className={`status-badge ${statusClassMap[normalizeStatus(status)] || 'status-neutral'}`}>{status}</span>;
+  const visibleStatus = displayStatus(status);
+  return <span className={`status-badge ${statusClassMap[normalizeStatus(visibleStatus)] || 'status-neutral'}`}>{visibleStatus}</span>;
 }

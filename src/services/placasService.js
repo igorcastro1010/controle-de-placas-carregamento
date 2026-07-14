@@ -2,9 +2,6 @@ import { setKeepConnectedPreference, supabase } from './supabaseClient';
 
 export const STATUSES = [
   'Aguardando',
-  '1ª ligação feita',
-  '2ª ligação feita',
-  '3ª ligação feita',
   'Não atendeu',
   'Chamado',
   'Chegou',
@@ -17,16 +14,14 @@ export const OUTRO_LOCAL_STATUS = 'Carregado em outro local';
 export const OUTRO_LOCAL_LABEL = 'Carregou em outro local';
 
 export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
-export const STATUS_FILA_ATUAL = ['Aguardando', '1ª ligação feita', '2ª ligação feita', '3ª ligação feita', 'Não atendeu'];
+export const STATUS_FILA_ATUAL = ['Aguardando', 'Não atendeu'];
+export const LEGACY_CALL_STATUSES = ['1ª ligação feita', '2ª ligação feita', '3ª ligação feita'];
 export const STATUS_EM_ANDAMENTO = ['Chamado', 'Chegou', 'Carregando'];
 export const MANAGERS = ['gerencia.ce@grupodago.com.br', 'operacional3.ce@grupodago.com.br'];
 export const AUDIT_VIEWERS = MANAGERS;
 
 export const REPORT_STATUSES = [
   'Aguardando',
-  '1ª ligação feita',
-  '2ª ligação feita',
-  '3ª ligação feita',
   'Não atendeu',
   'Chamado',
   'Chegou',
@@ -62,12 +57,13 @@ export const normalizeSearch = (value) =>
     .replace(/[^a-z0-9]/g, '');
 
 export const isOutroLocalRecord = (item) => normalizeSearch(item?.ocorrido).includes(normalizeSearch(OUTRO_LOCAL_LABEL));
+export const isLegacyCallStatus = (status) => LEGACY_CALL_STATUSES.some((callStatus) => normalizeStatus(callStatus) === normalizeStatus(status));
 
 export const isManager = (user) => MANAGERS.includes(String(user?.email || '').trim().toLowerCase());
 
 const inactiveStatusFilter = () => `(${ACTIVE_EXCLUDED_STATUSES.map((status) => `"${status}"`).join(',')})`;
 
-export const isStatusFilaAtual = (status) => STATUS_FILA_ATUAL.some((queueStatus) => normalizeStatus(queueStatus) === normalizeStatus(status));
+export const isStatusFilaAtual = (status) => STATUS_FILA_ATUAL.some((queueStatus) => normalizeStatus(queueStatus) === normalizeStatus(status)) || isLegacyCallStatus(status);
 
 export const isStatusEmAndamento = (status) => STATUS_EM_ANDAMENTO.some((progressStatus) => normalizeStatus(progressStatus) === normalizeStatus(status));
 
@@ -88,7 +84,10 @@ function matchesPlacaFilters(item, filters = {}) {
   if (filters.placa && !includesText(placaTarget, filters.placa)) return false;
   if (filters.motorista && !includesText(item.motorista, filters.motorista)) return false;
   if (filters.tipo_veiculo && item.tipo_veiculo !== filters.tipo_veiculo) return false;
-  if (filters.status && normalizeStatus(item.status) !== normalizeStatus(filters.status)) return false;
+  if (filters.status) {
+    const itemStatus = isLegacyCallStatus(item.status) ? 'Aguardando' : item.status;
+    if (normalizeStatus(itemStatus) !== normalizeStatus(filters.status)) return false;
+  }
   if (filters.responsavel && !includesText(item.responsavel_email || item.responsavel, filters.responsavel)) return false;
   if (filters.data && item.data !== filters.data) return false;
   if (filters.busca && !includesText(searchTarget, filters.busca)) return false;
@@ -393,9 +392,13 @@ export async function fetchTodayReport() {
   }, { total: 0 });
 
   return (data || []).reduce((acc, item) => {
-    if (item.data === todayISO()) acc.total += 1;
+    if (isStatusFilaAtual(item.status)) acc.total += 1;
     if (isOutroLocalRecord(item)) {
       acc[OUTRO_LOCAL_STATUS] += 1;
+      return acc;
+    }
+    if (isLegacyCallStatus(item.status)) {
+      acc.Aguardando += 1;
       return acc;
     }
     const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
@@ -415,7 +418,9 @@ export async function fetchReportDetails({ status, date, search } = {}) {
   const { data, error } = await query;
   if (error) throw error;
   if (!status) return data || [];
+  if (normalizeStatus(status) === normalizeStatus('Fila de Chamada')) return (data || []).filter((item) => isStatusFilaAtual(item.status));
   if (normalizeStatus(status) === normalizeStatus(OUTRO_LOCAL_STATUS)) return (data || []).filter(isOutroLocalRecord);
+  if (normalizeStatus(status) === normalizeStatus('Aguardando')) return (data || []).filter((item) => normalizeStatus(item.status) === normalizeStatus(status) || isLegacyCallStatus(item.status));
   if (normalizeStatus(status) === normalizeStatus('Finalizado')) return (data || []).filter((item) => normalizeStatus(item.status) === normalizeStatus(status) && !isOutroLocalRecord(item));
   return (data || []).filter((item) => normalizeStatus(item.status) === normalizeStatus(status));
 }
@@ -428,7 +433,7 @@ export async function fetchPeriodReport(filters = {}) {
   query = query.gte('data', start).lte('data', end);
 
   const shouldFilterStatusInMemory = Boolean(filters.status);
-  if (filters.status && normalizeStatus(filters.status) !== normalizeStatus(OUTRO_LOCAL_STATUS)) query = query.eq('status', filters.status);
+  if (filters.status && normalizeStatus(filters.status) !== normalizeStatus(OUTRO_LOCAL_STATUS) && normalizeStatus(filters.status) !== normalizeStatus('Aguardando')) query = query.eq('status', filters.status);
   if (filters.tipo_veiculo) query = query.eq('tipo_veiculo', filters.tipo_veiculo);
   if (filters.responsavel) query = query.ilike('responsavel_email', `%${filters.responsavel}%`);
   if (filters.entrega_local === 'sim') query = query.eq('entrega_local', true);
@@ -446,6 +451,8 @@ export async function fetchPeriodReport(filters = {}) {
   if (shouldFilterStatusInMemory) {
     if (normalizeStatus(filters.status) === normalizeStatus(OUTRO_LOCAL_STATUS)) {
       filteredData = filteredData.filter(isOutroLocalRecord);
+    } else if (normalizeStatus(filters.status) === normalizeStatus('Aguardando')) {
+      filteredData = filteredData.filter((item) => normalizeStatus(item.status) === normalizeStatus('Aguardando') || isLegacyCallStatus(item.status));
     } else if (normalizeStatus(filters.status) === normalizeStatus('Finalizado')) {
       filteredData = filteredData.filter((item) => !isOutroLocalRecord(item));
     }
