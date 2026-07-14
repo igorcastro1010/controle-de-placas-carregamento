@@ -7,6 +7,7 @@ import {
   ChevronDown,
   CheckCircle2,
   History,
+  ListOrdered,
   Loader,
   MapPin,
   Megaphone,
@@ -35,7 +36,7 @@ const normalizeStatus = (status) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onReopen, onPriority, onOtherLocation }) {
+export default function ActionButtons({ item, index, itemsLength, busyId, canViewAudit, canManageQueue, onAction, onMove, onEdit, onAudit, onReopen, onPriority, onOtherLocation, onMoveToPosition }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState({});
   const menuRef = useRef(null);
@@ -67,7 +68,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
     }
 
     const width = 230;
-    const itemCount = isClosed ? (canManageQueue ? 2 : 0) : 7 + (canManageQueue ? 3 : 0) + (canViewAudit ? 1 : 0);
+    const itemCount = isClosed ? (canManageQueue ? 2 : 0) : 7 + (canManageQueue ? (isInProgress ? 3 : 4) : 0) + (canViewAudit ? 1 : 0);
     const estimatedHeight = Math.min(420, itemCount * 39 + 18);
     const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -204,6 +205,12 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                       {item.prioridade_local ? <StarOff size={14} /> : <Star size={14} />}
                       {item.prioridade_local ? 'Remover prioridade' : 'Prioridade local'}
                     </button>
+                    {!isInProgress && (
+                      <button type="button" onClick={() => handleMenuClick(() => onMoveToPosition?.(item))}>
+                        <ListOrdered size={14} />
+                        Mover para posição
+                      </button>
+                    )}
                     <button type="button" disabled={isFirst} onClick={() => handleMenuClick(() => onMove(item, index, 'up'))}>
                       <ArrowUp size={14} />
                       Subir

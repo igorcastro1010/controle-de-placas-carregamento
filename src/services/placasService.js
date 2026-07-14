@@ -489,14 +489,64 @@ export async function fetchAuditoriaPlaca(placaId) {
   return data || [];
 }
 
-export async function fetchFilaVisualPositions() {
+export async function fetchFilaVisualItems() {
   const { data, error } = await supabase.from('placas').select('id, ordem, status, prioridade_local').not('status', 'in', inactiveStatusFilter()).order('ordem', { ascending: true });
   if (error) throw error;
 
-  return sortByPriorityAndOrder((data || []).filter((item) => isStatusFilaAtual(item.status))).reduce((acc, item, index) => {
+  return sortByPriorityAndOrder((data || []).filter((item) => isStatusFilaAtual(item.status))).map((item, index) => ({
+    ...item,
+    _fila_posicao_real: index + 1,
+  }));
+}
+
+export async function fetchFilaVisualPositions() {
+  const queueItems = await fetchFilaVisualItems();
+
+  return queueItems.reduce((acc, item, index) => {
     acc[item.id] = index + 1;
     return acc;
   }, {});
+}
+
+export async function moveToQueuePosition(item, targetPosition) {
+  const normalizedTarget = Number(targetPosition);
+  const queueItems = await fetchFilaVisualItems();
+  const currentIndex = queueItems.findIndex((queueItem) => queueItem.id === item.id);
+
+  if (currentIndex === -1) {
+    throw new Error('Este veículo não está na Fila de Chamada.');
+  }
+
+  if (!Number.isInteger(normalizedTarget) || normalizedTarget < 1 || normalizedTarget > queueItems.length) {
+    throw new Error(`Informe uma posição entre 1 e ${queueItems.length}.`);
+  }
+
+  const currentPosition = currentIndex + 1;
+  const [movingItem] = queueItems.splice(currentIndex, 1);
+
+  // Mover para posição ajusta a ordem manual da fila visível.
+  queueItems.splice(normalizedTarget - 1, 0, movingItem);
+
+  const updates = queueItems.map((queueItem, index) => {
+    const nextOrder = index + 1;
+    if (Number(queueItem.ordem || 0) === nextOrder) return Promise.resolve({ data: null, error: null });
+    return supabase.from('placas').update({ ordem: nextOrder }).eq('id', queueItem.id);
+  });
+
+  const results = await Promise.all(updates);
+  const error = results.find((result) => result.error)?.error;
+  if (error) throw error;
+
+  const refreshedQueue = await fetchFilaVisualItems();
+  const refreshedItem = refreshedQueue.find((queueItem) => queueItem.id === item.id);
+
+  return {
+    currentPosition,
+    newPosition: refreshedItem?._fila_posicao_real || normalizedTarget,
+    total: refreshedQueue.length || queueItems.length,
+    ordemAnterior: movingItem.ordem ?? null,
+    ordemNova: refreshedItem?.ordem ?? normalizedTarget,
+  };
 }
 
 export async function createPlaca(payload, user) {

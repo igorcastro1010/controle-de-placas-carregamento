@@ -6,6 +6,7 @@ import ChamadoModal from '../components/ChamadoModal';
 import DetailsModal from '../components/DetailsModal';
 import EditPlacaModal from '../components/EditPlacaModal';
 import Filters from '../components/Filters';
+import MovePositionModal from '../components/MovePositionModal';
 import PlacaForm from '../components/PlacaForm';
 import PlacasTable from '../components/PlacasTable';
 import PeriodReport from '../components/PeriodReport';
@@ -19,16 +20,19 @@ import {
   currentTime,
   addPrioridadeLocal,
   fetchAuditoriaPlaca,
+  fetchFilaVisualItems,
   fetchFilaVisualPositions,
   fetchPlacas,
   fetchReportDetails,
   fetchTodayReport,
   moveToEnd,
+  moveToQueuePosition,
   removePrioridadeLocal,
   registrarAuditoria,
   reopenPlaca,
   signOut,
   swapOrder,
+  isStatusFilaAtual,
   isManager,
   todayISO,
   toUpperText,
@@ -62,6 +66,7 @@ const movementDetails = (type, fromPosition, toPosition) => {
   if (type === 'end') return `Movimento na fila: estava em ${fromText} e foi para ${toText}`;
   if (type === 'up') return `Movimento na fila: estava em ${fromText} e subiu para ${toText}`;
   if (type === 'down') return `Movimento na fila: estava em ${fromText} e desceu para ${toText}`;
+  if (type === 'position') return `Movimento na fila: estava em ${fromText} e foi para ${toText}`;
   if (type === 'reopen') return `Movimento na fila: voltou para a fila na posição ${toText}`;
   return 'Movimento na fila registrado.';
 };
@@ -105,6 +110,10 @@ export default function Dashboard({ user, onLogout }) {
   const [reopenSaving, setReopenSaving] = useState(false);
   const [priorityItem, setPriorityItem] = useState(null);
   const [prioritySaving, setPrioritySaving] = useState(false);
+  const [movePositionItem, setMovePositionItem] = useState(null);
+  const [movePositionMeta, setMovePositionMeta] = useState({ currentPosition: 0, total: 0 });
+  const [movePositionSaving, setMovePositionSaving] = useState(false);
+  const [movePositionError, setMovePositionError] = useState('');
   const [auditItem, setAuditItem] = useState(null);
   const [auditEntries, setAuditEntries] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -655,6 +664,71 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  const handleRequestMoveToPosition = async (item) => {
+    if (!canManageQueue) {
+      setError('Você não tem permissão para alterar a posição da fila.');
+      return;
+    }
+
+    if (!isStatusFilaAtual(item.status)) {
+      setError('Essa ação está disponível somente para a Fila de Chamada.');
+      return;
+    }
+
+    setMovePositionError('');
+    setError('');
+    try {
+      const queueItems = await fetchFilaVisualItems();
+      const currentItem = queueItems.find((queueItem) => queueItem.id === item.id);
+      if (!currentItem) {
+        setError('Este veículo não está na Fila de Chamada.');
+        return;
+      }
+
+      setMovePositionMeta({
+        currentPosition: currentItem._fila_posicao_real,
+        total: queueItems.length,
+      });
+      setMovePositionItem(item);
+    } catch (err) {
+      setError(err.message || 'Não foi possível carregar a posição atual da fila.');
+    }
+  };
+
+  const handleConfirmMoveToPosition = async (item, targetPosition) => {
+    if (!canManageQueue) {
+      setMovePositionError('Você não tem permissão para alterar a posição da fila.');
+      return;
+    }
+
+    setMovePositionSaving(true);
+    setBusyId(item.id);
+    setMovePositionError('');
+    setError('');
+    try {
+      const result = await moveToQueuePosition(item, targetPosition);
+      await safeRegisterAudit({
+        placaId: item.id,
+        acao: 'Movido para posição',
+        statusAnterior: item.status,
+        statusNovo: item.status,
+        ordemAnterior: result.ordemAnterior,
+        ordemNova: result.ordemNova,
+        detalhes: movementDetails('position', result.currentPosition, result.newPosition),
+      });
+      setMovePositionItem(null);
+      setMovePositionMeta({ currentPosition: 0, total: 0 });
+      await loadData();
+      if (selectedReportCard) await loadReportDetails();
+      showSuccess(`Veículo movido para a posição #${result.newPosition}.`);
+    } catch (err) {
+      setMovePositionError(err.message || 'Não foi possível mover o veículo na fila.');
+    } finally {
+      setMovePositionSaving(false);
+      setBusyId('');
+    }
+  };
+
   const handleConfirmPriority = async (item, reason) => {
     if (!canManageQueue) {
       setError('Você não tem permissão para alterar prioridade local.');
@@ -843,6 +917,7 @@ export default function Dashboard({ user, onLogout }) {
                     onAudit={handleOpenAudit}
                     onPriority={handlePriorityAction}
                     onOtherLocation={handleConfirmOutroLocal}
+                    onMoveToPosition={handleRequestMoveToPosition}
                     busyId={busyId}
                     canViewAudit={canViewAudit}
                     canManageQueue={canManageQueue}
@@ -864,6 +939,7 @@ export default function Dashboard({ user, onLogout }) {
                     onAudit={handleOpenAudit}
                     onPriority={handlePriorityAction}
                     onOtherLocation={handleConfirmOutroLocal}
+                    onMoveToPosition={handleRequestMoveToPosition}
                     busyId={busyId}
                     canViewAudit={canViewAudit}
                     canManageQueue={canManageQueue}
@@ -878,7 +954,7 @@ export default function Dashboard({ user, onLogout }) {
             {loading ? (
               <div className="empty-state">Carregando finalizados...</div>
             ) : (
-              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} canManageQueue={canManageQueue} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={handleRequestReopen} onPriority={handlePriorityAction} onOtherLocation={handleConfirmOutroLocal} busyId={busyId} />
+              <PlacasTable items={finishedItems} finalizados canViewAudit={canViewAudit} canManageQueue={canManageQueue} onAction={handleAction} onMove={handleMove} onAudit={handleOpenAudit} onReopen={handleRequestReopen} onPriority={handlePriorityAction} onOtherLocation={handleConfirmOutroLocal} onMoveToPosition={handleRequestMoveToPosition} busyId={busyId} />
             )}
           </>
         )}
@@ -901,6 +977,7 @@ export default function Dashboard({ user, onLogout }) {
         onReopen={handleRequestReopen}
         onPriority={handlePriorityAction}
         onOtherLocation={handleConfirmOutroLocal}
+        onMoveToPosition={handleRequestMoveToPosition}
         onDateChange={setDetailsDate}
         onSearchChange={setDetailsSearch}
         onClearFilters={() => {
@@ -914,6 +991,7 @@ export default function Dashboard({ user, onLogout }) {
       <CancelPlacaModal item={cancelingItem} saving={cancelSaving} onClose={() => setCancelingItem(null)} onConfirm={handleConfirmCancel} />
       <ReopenPlacaModal item={reopeningItem} saving={reopenSaving} onClose={() => setReopeningItem(null)} onConfirm={handleConfirmReopen} />
       <PriorityLocalModal item={priorityItem} saving={prioritySaving} onClose={() => setPriorityItem(null)} onConfirm={handleConfirmPriority} />
+      <MovePositionModal item={movePositionItem} currentPosition={movePositionMeta.currentPosition} total={movePositionMeta.total} saving={movePositionSaving} error={movePositionError} onClose={() => setMovePositionItem(null)} onConfirm={handleConfirmMoveToPosition} />
       <AuditHistoryModal item={auditItem} entries={auditEntries} loading={auditLoading} error={auditError} onClose={() => setAuditItem(null)} />
 
       {createModalOpen && (

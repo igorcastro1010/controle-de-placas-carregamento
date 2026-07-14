@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import { formatDateTime } from '../services/placasService';
 
 const movementActions = ['Movido para o fim', 'Não atendeu', 'Subiu posição', 'Desceu posição', 'Reabertura'];
-const isMovementAudit = (entry) => movementActions.includes(entry.acao);
+const isMovementAudit = (entry) => movementActions.includes(entry.acao) || entry.acao === 'Movido para posição';
 const hasMovementDetails = (entry) => String(entry.detalhes || '').startsWith('Movimento na fila');
 
 export default function AuditHistoryModal({ item, entries, loading, error, onClose }) {
