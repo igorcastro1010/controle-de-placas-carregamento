@@ -31,18 +31,18 @@ export default function CancelPlacaModal({ item, saving, onClose, onConfirm }) {
       <section className="form-modal cancel-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title" onClick={(event) => event.stopPropagation()}>
         <header className="details-header">
           <div>
-            <span className="eyebrow">Carga cancelada</span>
-            <h2 id="cancel-modal-title">Carga cancelada</h2>
-            <p>Informe o motivo para devolver o motorista para a fila.</p>
+            <span className="eyebrow">Cancelamento</span>
+            <h2 id="cancel-modal-title">Cancelar carga</h2>
+            <p>Informe o motivo para cancelar a carga.</p>
           </div>
-          <button className="icon-only" type="button" onClick={onClose} aria-label="Fechar carga cancelada">
+          <button className="icon-only" type="button" onClick={onClose} aria-label="Fechar cancelamento">
             <X size={20} aria-hidden="true" />
           </button>
         </header>
 
         <form className="modal-form" onSubmit={handleSubmit}>
           <label>
-            Motivo da carga cancelada *
+            Motivo do cancelamento *
             <select required value={reason} onChange={(event) => setReason(event.target.value)}>
               <option value="">Selecione um motivo</option>
               {reasons.map((itemReason) => (
@@ -63,7 +63,7 @@ export default function CancelPlacaModal({ item, saving, onClose, onConfirm }) {
               Voltar
             </button>
             <button className="icon-text danger" type="submit" disabled={!canConfirm || saving}>
-              {saving ? 'Devolvendo...' : 'Confirmar carga cancelada'}
+              {saving ? 'Cancelando...' : 'Confirmar cancelamento'}
             </button>
           </div>
         </form>

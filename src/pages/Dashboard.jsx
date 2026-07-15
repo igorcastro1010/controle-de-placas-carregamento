@@ -15,7 +15,6 @@ import ReopenPlacaModal from '../components/ReopenPlacaModal';
 import ReportCards from '../components/ReportCards';
 import VehicleRegistry from '../components/VehicleRegistry';
 import {
-  cancelCargaAndReturnToQueue,
   createPlaca,
   currentTime,
   addPrioridadeLocal,
@@ -596,16 +595,19 @@ export default function Dashboard({ user, onLogout }) {
     setError('');
     try {
       const cancelReason = toUpperText(reason);
-      const cancelNote = `[Carga cancelada] ${cancelReason}`;
+      const cancelNote = `[Cancelar carga] ${cancelReason}`;
       const ocorrido = item.ocorrido ? `${item.ocorrido}\n${cancelNote}` : cancelNote;
-      const updated = await cancelCargaAndReturnToQueue(item, {
+      const updated = await updatePlaca(item.id, {
+        status: 'Cancelado',
+        cancelado_por: user.email,
+        cancelado_em: new Date().toISOString(),
         ocorrido,
       });
       await safeRegisterAudit({
         placaId: item.id,
-        acao: 'Carga cancelada',
+        acao: 'Cancelado',
         statusAnterior: item.status,
-        statusNovo: 'Aguardando',
+        statusNovo: 'Cancelado',
         ordemAnterior: item.ordem,
         ordemNova: updated.ordem,
         detalhes: `Motivo: ${cancelReason}`,
@@ -613,7 +615,7 @@ export default function Dashboard({ user, onLogout }) {
       setCancelingItem(null);
       await loadData();
       if (selectedReportCard) await loadReportDetails();
-      showSuccess('Carga cancelada. Motorista voltou para a fila.');
+      showSuccess('Carga cancelada com sucesso.');
     } catch (err) {
       setError(err.message || 'Não foi possível cancelar a carga.');
     } finally {

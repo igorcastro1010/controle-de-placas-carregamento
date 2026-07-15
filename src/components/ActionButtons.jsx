@@ -29,6 +29,15 @@ function ActionButton({ className = 'neutral', children, ...props }) {
   );
 }
 
+function MenuSection({ title, children }) {
+  return (
+    <div className="actions-menu-section">
+      <span>{title}</span>
+      {children}
+    </div>
+  );
+}
+
 const normalizeStatus = (status) =>
   String(status || '')
     .trim()
@@ -47,6 +56,8 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
   const isClosed = ['Finalizado', 'Cancelado', 'Carregado em outro local'].includes((item.status || '').trim());
   const statusKey = normalizeStatus(item.status);
   const isInProgress = ['chamado', 'chegou', 'carregando'].includes(statusKey);
+  const showChegouAction = !isInProgress || statusKey === 'chamado';
+  const showCarregandoAction = !isInProgress || statusKey === 'chamado' || statusKey === 'chegou';
 
   const positionMenu = () => {
     const trigger = triggerRef.current;
@@ -63,13 +74,15 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
         bottom: 12,
         top: 'auto',
         width: 'auto',
+        maxHeight: '82vh',
       });
       return;
     }
 
-    const width = 230;
+    const width = 280;
     const itemCount = isClosed ? (canManageQueue ? 2 : 0) : 7 + (canManageQueue ? (isInProgress ? 3 : 4) : 0) + (canViewAudit ? 1 : 0);
-    const estimatedHeight = Math.min(420, itemCount * 39 + 18);
+    const sectionCount = isClosed ? 1 : 3;
+    const estimatedHeight = Math.min(window.innerHeight - 24, itemCount * 38 + sectionCount * 34 + 18);
     const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
     const spaceBelow = window.innerHeight - rect.bottom;
     const top = spaceBelow >= estimatedHeight + 16 ? rect.bottom + 8 : Math.max(12, rect.top - estimatedHeight - 8);
@@ -79,6 +92,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
       left,
       top,
       width,
+      maxHeight: Math.min(estimatedHeight, window.innerHeight - 24),
     });
   };
 
@@ -171,9 +185,9 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
             <CheckCircle2 size={14} />
             Finalizar
           </ActionButton>
-          <ActionButton className="danger-soft" title="Carga cancelada" disabled={disabled} onClick={() => onAction(item, 'cancelar')}>
+          <ActionButton className="danger-soft" title="Cancelar carga" disabled={disabled} onClick={() => onAction(item, 'cancelar')}>
             <X size={14} />
-            Carga cancelada
+            Cancelar carga
           </ActionButton>
         </div>
       )}
@@ -189,71 +203,79 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
           <div ref={menuRef} className="more-actions-menu" style={menuStyle}>
             {!isClosed && (
               <>
-                <button type="button" onClick={() => handleMenuClick(() => onEdit?.(item))}>
-                  <Pencil size={14} />
-                  Editar
-                </button>
-                {canViewAudit && (
-                  <button type="button" onClick={() => handleMenuClick(() => onAudit?.(item))}>
-                    <History size={14} />
-                    Histórico
+                <MenuSection title="Cadastro">
+                  <button type="button" onClick={() => handleMenuClick(() => onEdit?.(item))}>
+                    <Pencil size={14} />
+                    Editar
                   </button>
-                )}
-                {canManageQueue && (
-                  <>
-                    <button type="button" onClick={() => handleMenuClick(() => onPriority?.(item))}>
-                      {item.prioridade_local ? <StarOff size={14} /> : <Star size={14} />}
-                      {item.prioridade_local ? 'Remover prioridade' : 'Prioridade local'}
+                  {canViewAudit && (
+                    <button type="button" onClick={() => handleMenuClick(() => onAudit?.(item))}>
+                      <History size={14} />
+                      Histórico
                     </button>
-                    {!isInProgress && (
-                      <button type="button" onClick={() => handleMenuClick(() => onMoveToPosition?.(item))}>
-                        <ListOrdered size={14} />
-                        Mover para posição
+                  )}
+                </MenuSection>
+
+                <MenuSection title="Fila">
+                  {canManageQueue && (
+                    <>
+                      <button type="button" onClick={() => handleMenuClick(() => onPriority?.(item))}>
+                        {item.prioridade_local ? <StarOff size={14} /> : <Star size={14} />}
+                        {item.prioridade_local ? 'Remover prioridade' : 'Prioridade local'}
                       </button>
-                    )}
-                    <button type="button" disabled={isFirst} onClick={() => handleMenuClick(() => onMove(item, index, 'up'))}>
-                      <ArrowUp size={14} />
-                      Subir
-                    </button>
-                    <button type="button" disabled={isLast} onClick={() => handleMenuClick(() => onMove(item, index, 'down'))}>
-                      <ArrowDown size={14} />
-                      Descer
-                    </button>
-                  </>
-                )}
-                <button type="button" onClick={() => handleMenuClick(() => onMove(item, index, 'end'))}>
-                  <ArrowDownToLine size={14} />
-                  Fim
-                </button>
-                <button type="button" onClick={() => handleMenuClick(() => (onOtherLocation ? onOtherLocation(item) : onAction(item, 'outro_local')))}>
-                  <MapPin size={14} />
-                  Carregou em outro local
-                </button>
-                {!isInProgress && (
-                  <>
+                      {!isInProgress && (
+                        <button type="button" onClick={() => handleMenuClick(() => onMoveToPosition?.(item))}>
+                          <ListOrdered size={14} />
+                          Mover para posição
+                        </button>
+                      )}
+                      <button type="button" disabled={isFirst} onClick={() => handleMenuClick(() => onMove(item, index, 'up'))}>
+                        <ArrowUp size={14} />
+                        Subir
+                      </button>
+                      <button type="button" disabled={isLast} onClick={() => handleMenuClick(() => onMove(item, index, 'down'))}>
+                        <ArrowDown size={14} />
+                        Descer
+                      </button>
+                    </>
+                  )}
+                  <button type="button" onClick={() => handleMenuClick(() => onMove(item, index, 'end'))}>
+                    <ArrowDownToLine size={14} />
+                    Fim
+                  </button>
+                </MenuSection>
+
+                <MenuSection title="Status">
+                  {showChegouAction && (
                     <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'chegou'))}>
                       <Check size={14} />
                       Chegou
                     </button>
+                  )}
+                  {showCarregandoAction && (
                     <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'carregando'))}>
                       <Loader size={14} />
                       Carregando
                     </button>
-                    <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'finalizar'))}>
-                      <CheckCircle2 size={14} />
-                      Finalizar
-                    </button>
-                    <button className="menu-danger" type="button" onClick={() => handleMenuClick(() => onAction(item, 'cancelar'))}>
-                      <X size={14} />
-                      Carga cancelada
-                    </button>
-                  </>
-                )}
+                  )}
+                  <button type="button" onClick={() => handleMenuClick(() => onAction(item, 'finalizar'))}>
+                    <CheckCircle2 size={14} />
+                    Finalizar
+                  </button>
+                  <button type="button" onClick={() => handleMenuClick(() => (onOtherLocation ? onOtherLocation(item) : onAction(item, 'outro_local')))}>
+                    <MapPin size={14} />
+                    Carregou em outro local
+                  </button>
+                  <button className="menu-danger" type="button" onClick={() => handleMenuClick(() => onAction(item, 'cancelar'))}>
+                    <X size={14} />
+                    Cancelar carga
+                  </button>
+                </MenuSection>
               </>
             )}
 
             {isClosed && canManageQueue && (
-              <>
+              <MenuSection title="Encerrado">
                 {canViewAudit && (
                   <button type="button" onClick={() => handleMenuClick(() => onAudit?.(item))}>
                     <History size={14} />
@@ -264,7 +286,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
                   <RotateCcw size={14} />
                   Reabrir
                 </button>
-              </>
+              </MenuSection>
             )}
           </div>
         )}
