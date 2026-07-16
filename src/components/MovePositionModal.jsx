@@ -54,7 +54,7 @@ export default function MovePositionModal({ item, currentPosition, total, saving
 
           <div className="move-position-summary">
             <div>
-              <span>Posição atual</span>
+              <span>Posição na fila geral</span>
               <strong>#{currentPosition || '-'}</strong>
             </div>
             <div>
@@ -64,7 +64,7 @@ export default function MovePositionModal({ item, currentPosition, total, saving
           </div>
 
           <p className="move-position-help">
-            Este veículo está na posição #{currentPosition || '-'}. Informe para qual posição deseja mover.
+            Este veículo está na posição #{currentPosition || '-'} da fila geral. Informe para qual posição geral deseja mover.
           </p>
 
           <label>

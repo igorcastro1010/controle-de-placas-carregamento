@@ -72,7 +72,7 @@ function ActiveQueueCards({ items, pageItems, pageStartIndex, onAction, onMove, 
             key={item.id}
             item={item}
             index={index}
-            visualOrder={item._fila_posicao_real || index + 1}
+            visualOrder={index + 1}
             itemsLength={items.length}
             busyId={busyId}
             canViewAudit={canViewAudit}
