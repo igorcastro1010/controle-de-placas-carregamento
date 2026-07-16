@@ -26,6 +26,7 @@ import {
   fetchTodayReport,
   moveToEnd,
   moveToQueuePosition,
+  matchesVehicleGroup,
   removePrioridadeLocal,
   registrarAuditoria,
   reopenPlaca,
@@ -57,6 +58,13 @@ const emptyFinishedFilters = {
   tipo_veiculo: '',
 };
 
+const queueVehicleTabs = [
+  { key: 'todos', label: 'Todos' },
+  { key: 'carreta_bau', label: 'Carreta Baú' },
+  { key: 'carreta_sider', label: 'Carreta Sider' },
+  { key: 'truck', label: 'Truck' },
+];
+
 const movementDetails = (type, fromPosition, toPosition) => {
   const fromText = fromPosition ? `#${fromPosition}` : '#-';
   const toText = toPosition ? `#${toPosition}` : '#-';
@@ -80,6 +88,7 @@ export default function Dashboard({ user, onLogout }) {
   const auditItemRef = useRef(null);
   const refreshAuditRef = useRef(null);
   const [activeTab, setActiveTab] = useState('fila');
+  const [queueVehicleTab, setQueueVehicleTab] = useState('todos');
   const [items, setItems] = useState([]);
   const [inProgressItems, setInProgressItems] = useState([]);
   const [finishedItems, setFinishedItems] = useState([]);
@@ -285,6 +294,17 @@ export default function Dashboard({ user, onLogout }) {
     setMessage(text);
     setTimeout(() => setMessage(''), 3000);
   };
+
+  const queueTabCounts = useMemo(
+    () =>
+      queueVehicleTabs.reduce((acc, tab) => {
+        acc[tab.key] = tab.key === 'todos' ? items.length : items.filter((item) => matchesVehicleGroup(item, tab.key)).length;
+        return acc;
+      }, {}),
+    [items]
+  );
+
+  const visibleQueueItems = useMemo(() => items.filter((item) => matchesVehicleGroup(item, queueVehicleTab)), [items, queueVehicleTab]);
 
   const handleScrollToInProgress = () => {
     setActiveTab('fila');
@@ -911,8 +931,16 @@ export default function Dashboard({ user, onLogout }) {
                       <h3>Fila de Chamada ({items.length})</h3>
                     </div>
                   </div>
+                  <div className="queue-type-tabs" role="tablist" aria-label="Tipo de veículo na fila">
+                    {queueVehicleTabs.map((tab) => (
+                      <button className={queueVehicleTab === tab.key ? 'active' : ''} type="button" key={tab.key} onClick={() => setQueueVehicleTab(tab.key)}>
+                        {tab.label} ({queueTabCounts[tab.key] || 0})
+                      </button>
+                    ))}
+                  </div>
                   <PlacasTable
-                    items={items}
+                    key={queueVehicleTab}
+                    items={visibleQueueItems}
                     onAction={handleAction}
                     onMove={handleMove}
                     onEdit={handleEdit}

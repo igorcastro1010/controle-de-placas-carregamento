@@ -12,6 +12,7 @@ import {
   isLegacyCallStatus,
   isOutroLocalRecord,
   normalizeStatus,
+  getVehicleGroup,
   todayISO,
 } from '../services/placasService';
 import StatusBadge from './StatusBadge';
@@ -20,7 +21,7 @@ const initialFilters = {
   start: todayISO(),
   end: todayISO(),
   status: '',
-  tipo_veiculo: '',
+  vehicle_group: '',
   search: '',
   responsavel: '',
   entrega_local: '',
@@ -76,7 +77,7 @@ export default function PeriodReport({ refreshSignal = 0 }) {
       return acc;
     }, {});
 
-    const vehicleCounts = { Truck: 0, Carreta: 0 };
+    const vehicleCounts = { Truck: 0, CarretaBau: 0, CarretaSider: 0 };
 
     items.forEach((item) => {
       if (isOutroLocalRecord(item)) {
@@ -89,7 +90,9 @@ export default function PeriodReport({ refreshSignal = 0 }) {
         const reportStatus = REPORT_STATUSES.find((status) => normalizeStatus(status) === normalizeStatus(item.status));
         if (reportStatus) statusCounts[reportStatus] += 1;
       }
-      if (item.tipo_veiculo === 'Carreta') vehicleCounts.Carreta += 1;
+      const vehicleGroup = getVehicleGroup(item);
+      if (vehicleGroup === 'carreta_bau') vehicleCounts.CarretaBau += 1;
+      else if (vehicleGroup === 'carreta_sider') vehicleCounts.CarretaSider += 1;
       else vehicleCounts.Truck += 1;
     });
 
@@ -150,11 +153,12 @@ export default function PeriodReport({ refreshSignal = 0 }) {
               </select>
             </label>
             <label>
-              Tipo de veículo
-              <select value={filters.tipo_veiculo} onChange={(event) => updateFilter('tipo_veiculo', event.target.value)}>
+              Tipo/carroceria
+              <select value={filters.vehicle_group} onChange={(event) => updateFilter('vehicle_group', event.target.value)}>
                 <option value="">Todos</option>
-                <option value="Truck">Truck</option>
-                <option value="Carreta">Carreta</option>
+                <option value="truck">Truck</option>
+                <option value="carreta_bau">Carreta Baú</option>
+                <option value="carreta_sider">Carreta Sider</option>
               </select>
             </label>
             <label>
@@ -195,8 +199,9 @@ export default function PeriodReport({ refreshSignal = 0 }) {
         {REPORT_STATUSES.map((status) => (
           <ReportMetric key={status} label={status} value={summary.statusCounts[status] || 0} />
         ))}
-        <ReportMetric label="Truck" value={summary.vehicleCounts.Truck} />
-        <ReportMetric label="Carreta" value={summary.vehicleCounts.Carreta} />
+        <ReportMetric label="Total Truck" value={summary.vehicleCounts.Truck} />
+        <ReportMetric label="Total Carreta Baú" value={summary.vehicleCounts.CarretaBau} />
+        <ReportMetric label="Total Carreta Sider" value={summary.vehicleCounts.CarretaSider} />
         <ReportMetric label="Total entrega local" value={summary.localCounts.entregaLocal} />
         <ReportMetric label="Total prioridade local" value={summary.localCounts.prioridadeLocal} />
       </div>

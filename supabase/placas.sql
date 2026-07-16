@@ -8,6 +8,7 @@ create table if not exists public.placas (
   placa text not null,
   tipo_veiculo text default 'Truck',
   tipo_carroceria text default 'BAU',
+  carroceria text,
   placa_cavalo text,
   placa_carreta text,
   entrega_local boolean default false,
@@ -64,11 +65,18 @@ create index if not exists placas_responsavel_id_idx on public.placas (responsav
 create index if not exists placas_responsavel_email_idx on public.placas (responsavel_email);
 
 alter table public.placas add column if not exists tipo_carroceria text default 'BAU';
+alter table public.placas add column if not exists carroceria text;
 alter table public.placas add column if not exists carregado_outro_local_por text;
 alter table public.placas add column if not exists carregado_outro_local_em timestamp with time zone;
 alter table public.placas add column if not exists carregado_outro_local_motivo text;
 alter table public.placas add column if not exists carregado_outro_local_local text;
 update public.placas set tipo_carroceria = 'BAU' where tipo_carroceria is null;
+update public.placas
+set carroceria = case
+  when upper(coalesce(tipo_carroceria, carroceria, 'BAU')) in ('SIDER', 'SYDER') then 'Sider'
+  else 'Baú'
+end
+where carroceria is null;
 
 alter table public.placas drop constraint if exists placas_status_check;
 alter table public.placas
@@ -171,6 +179,7 @@ create table if not exists public.veiculos_motoristas (
   id uuid primary key default gen_random_uuid(),
   tipo_veiculo text,
   tipo_carroceria text,
+  carroceria text,
   placa text,
   placa_normalizada text,
   placa_cavalo text,
@@ -196,7 +205,39 @@ alter table public.veiculos_motoristas add column if not exists placa_normalizad
 alter table public.veiculos_motoristas add column if not exists placa_cavalo_normalizada text;
 alter table public.veiculos_motoristas add column if not exists placa_carreta_normalizada text;
 alter table public.veiculos_motoristas add column if not exists tipo_carroceria text;
+alter table public.veiculos_motoristas add column if not exists carroceria text;
 update public.veiculos_motoristas set tipo_carroceria = 'BAU' where tipo_carroceria is null;
+update public.veiculos_motoristas
+set carroceria = case
+  when upper(coalesce(tipo_carroceria, carroceria, 'BAU')) in ('SIDER', 'SYDER') then 'Sider'
+  else 'Baú'
+end
+where carroceria is null;
+
+create or replace function public.sync_carroceria_from_tipo()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.carroceria := case
+    when upper(coalesce(new.tipo_carroceria, new.carroceria, 'BAU')) in ('SIDER', 'SYDER') then 'Sider'
+    else 'Baú'
+  end;
+  return new;
+end;
+$$;
+
+drop trigger if exists placas_sync_carroceria_before_write on public.placas;
+create trigger placas_sync_carroceria_before_write
+before insert or update of tipo_carroceria, carroceria on public.placas
+for each row
+execute function public.sync_carroceria_from_tipo();
+
+drop trigger if exists veiculos_motoristas_sync_carroceria_before_write on public.veiculos_motoristas;
+create trigger veiculos_motoristas_sync_carroceria_before_write
+before insert or update of tipo_carroceria, carroceria on public.veiculos_motoristas
+for each row
+execute function public.sync_carroceria_from_tipo();
 
 update public.veiculos_motoristas
 set

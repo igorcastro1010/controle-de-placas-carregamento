@@ -120,15 +120,15 @@ export default function EditPlacaModal({ item, saving, error, onClose, onSave })
               Motorista *
               <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} />
             </label>
-            <section className="operation-section body-type-section full-width" aria-label="Tipo de carroceria">
+            {isCarreta && (
+            <section className="operation-section body-type-section full-width" aria-label="Tipo da carreta">
               <div>
-                <span className="operation-title">Tipo de carroceria *</span>
-                <p>Marque se o veÃ­culo Ã© baÃº ou sider.</p>
+                <span className="operation-title">Tipo da carreta *</span>
               </div>
               <div className="body-type-toggle">
                 <label className={`body-type-option ${form.tipo_carroceria === 'BAU' ? 'active' : ''}`}>
                   <input type="radio" name="edit_tipo_carroceria" value="BAU" checked={form.tipo_carroceria === 'BAU'} onChange={(event) => updateField('tipo_carroceria', event.target.value)} />
-                  <span>BaÃº</span>
+                  <span>Baú</span>
                 </label>
                 <label className={`body-type-option ${form.tipo_carroceria === 'SIDER' ? 'active' : ''}`}>
                   <input type="radio" name="edit_tipo_carroceria" value="SIDER" checked={form.tipo_carroceria === 'SIDER'} onChange={(event) => updateField('tipo_carroceria', event.target.value)} />
@@ -136,6 +136,7 @@ export default function EditPlacaModal({ item, saving, error, onClose, onSave })
                 </label>
               </div>
             </section>
+            )}
             <label>
               Telefone *
               <input required value={form.telefone} onChange={(event) => updateField('telefone', event.target.value)} />

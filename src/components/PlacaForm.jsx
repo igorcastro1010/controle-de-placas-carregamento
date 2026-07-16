@@ -155,10 +155,10 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
           <input required value={form.motorista} onChange={(event) => updateField('motorista', event.target.value)} placeholder="Digite o nome do motorista" />
         </label>
 
-        <section className="operation-section body-type-section full-width" aria-label="Tipo de carroceria">
+        {isCarreta && (
+        <section className="operation-section body-type-section full-width" aria-label="Tipo da carreta">
           <div>
-            <span className="operation-title">Tipo de carroceria *</span>
-            <p>Marque se o veículo é baú ou sider.</p>
+            <span className="operation-title">Tipo da carreta *</span>
           </div>
           <div className="body-type-toggle">
             <label className={`body-type-option ${form.tipo_carroceria === 'BAU' ? 'active' : ''}`}>
@@ -171,6 +171,7 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
             </label>
           </div>
         </section>
+        )}
 
         {lookupStatus && (
           <div className="auto-fill-note full-width">

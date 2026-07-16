@@ -319,6 +319,25 @@ export const formatBodyType = (value) => {
   return bodyType || '-';
 };
 
+export const normalizeBodyType = (value) => {
+  const bodyType = normalizeStatus(value);
+  if (bodyType === 'bau') return 'BAU';
+  if (bodyType === 'sider' || bodyType === 'syder') return 'SIDER';
+  return toUpperText(value);
+};
+
+export const getVehicleGroup = (item = {}) => {
+  if (item.tipo_veiculo === 'Carreta') {
+    const bodyType = normalizeBodyType(item.tipo_carroceria || item.carroceria);
+    if (bodyType === 'SIDER') return 'carreta_sider';
+    return 'carreta_bau';
+  }
+
+  return 'truck';
+};
+
+export const matchesVehicleGroup = (item, group) => !group || group === 'todos' || getVehicleGroup(item) === group;
+
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
@@ -458,13 +477,17 @@ export async function fetchPeriodReport(filters = {}) {
     }
   }
 
-  if (!filters.search) return filteredData;
+  if (filters.search) {
+    const normalizedSearch = normalizeSearch(filters.search);
+    filteredData = filteredData.filter((item) => {
+      const target = [item.placa, item.placa_cavalo, item.placa_carreta, item.motorista].map(normalizeSearch).join('');
+      return target.includes(normalizedSearch);
+    });
+  }
 
-  const normalizedSearch = normalizeSearch(filters.search);
-  return filteredData.filter((item) => {
-    const target = [item.placa, item.placa_cavalo, item.placa_carreta, item.motorista].map(normalizeSearch).join('');
-    return target.includes(normalizedSearch);
-  });
+  if (filters.vehicle_group) filteredData = filteredData.filter((item) => matchesVehicleGroup(item, filters.vehicle_group));
+
+  return filteredData;
 }
 
 export async function registrarAuditoria(user, { placaId, acao, statusAnterior, statusNovo, ordemAnterior, ordemNova, detalhes }) {
