@@ -215,6 +215,15 @@ export default function Dashboard({ user, onLogout }) {
     loadReportDetails();
   }, [loadReportDetails]);
 
+  const refreshAfterAction = useCallback(async () => {
+    const savedScrollY = window.scrollY;
+    await loadData({ silent: true });
+    if (selectedReportCard) await loadReportDetails({ silent: true });
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: savedScrollY, behavior: 'auto' });
+    });
+  }, [loadData, loadReportDetails, selectedReportCard]);
+
   useEffect(() => {
     loadDataRef.current = loadData;
   }, [loadData]);
@@ -361,7 +370,7 @@ export default function Dashboard({ user, onLogout }) {
         });
       }
       setCreateModalOpen(false);
-      await loadData();
+      await refreshAfterAction();
       if (created.veiculoCadastroErro) {
         setError('Placa cadastrada na fila, mas não foi possível salvar no cadastro de veículos.');
       } else {
@@ -432,8 +441,7 @@ export default function Dashboard({ user, onLogout }) {
       }
 
       if (action !== 'cancelar' && action !== 'chamado' && action !== 'outro_local') {
-        await loadData();
-        if (selectedReportCard) await loadReportDetails();
+        await refreshAfterAction();
       }
     } catch (err) {
       setError(err.message || 'Não foi possível atualizar a placa.');
@@ -461,8 +469,7 @@ export default function Dashboard({ user, onLogout }) {
         detalhes: `Cidade: ${updated.cidade_destino || '-'}; Frete carreteiro: ${updated.valor_frete_carreteiro || '-'}`,
       });
       setChamadoItem(null);
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
       showSuccess('Motorista marcado como chamado.');
     } catch (err) {
       setError(err.message || 'Não foi possível marcar como chamado.');
@@ -496,8 +503,7 @@ export default function Dashboard({ user, onLogout }) {
         ordemNova: updated.ordem,
         detalhes: `Motivo: ${outroLocalPayload.motivo}`,
       });
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
       showSuccess('Motorista removido da fila como carregou em outro local.');
     } catch (err) {
       setError(err.message || 'Não foi possível marcar como carregado em outro local.');
@@ -543,8 +549,7 @@ export default function Dashboard({ user, onLogout }) {
           detalhes: movementDetails(direction, beforePositions[item.id], afterPositions[item.id]),
         });
       }
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
     } catch (err) {
       setError(err.message || 'Não foi possível mover a placa.');
     } finally {
@@ -594,8 +599,7 @@ export default function Dashboard({ user, onLogout }) {
         });
       }
       setEditingItem(null);
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
       if (updated.veiculoCadastroErro) {
         setError('Cadastro atualizado, mas não foi possível salvar no cadastro de veículos.');
       } else {
@@ -633,8 +637,7 @@ export default function Dashboard({ user, onLogout }) {
         detalhes: `Motivo: ${cancelReason}`,
       });
       setCancelingItem(null);
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
       showSuccess('Carga cancelada com sucesso.');
     } catch (err) {
       setError(err.message || 'Não foi possível cancelar a carga.');
@@ -677,8 +680,7 @@ export default function Dashboard({ user, onLogout }) {
         detalhes: `Prioridade local removida por ${user.email}.`,
       });
       showSuccess('Prioridade local removida.');
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
     } catch (err) {
       setError(err.message || 'Não foi possível remover a prioridade local.');
     } finally {
@@ -740,8 +742,7 @@ export default function Dashboard({ user, onLogout }) {
       });
       setMovePositionItem(null);
       setMovePositionMeta({ currentPosition: 0, total: 0 });
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
       showSuccess(`Veículo movido para a posição #${result.newPosition}.`);
     } catch (err) {
       setMovePositionError(err.message || 'Não foi possível mover o veículo na fila.');
@@ -775,8 +776,7 @@ export default function Dashboard({ user, onLogout }) {
       });
       showSuccess('Prioridade local adicionada.');
       setPriorityItem(null);
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
     } catch (err) {
       setError(err.message || 'Não foi possível adicionar a prioridade local.');
     } finally {
@@ -809,8 +809,7 @@ export default function Dashboard({ user, onLogout }) {
       });
       showSuccess('Marcação reaberta e enviada para o fim da fila.');
       setReopeningItem(null);
-      await loadData();
-      if (selectedReportCard) await loadReportDetails();
+      await refreshAfterAction();
     } catch (err) {
       setError(err.message || 'Não foi possível reabrir a marcação.');
     } finally {
@@ -1044,3 +1043,4 @@ export default function Dashboard({ user, onLogout }) {
     </main>
   );
 }
+

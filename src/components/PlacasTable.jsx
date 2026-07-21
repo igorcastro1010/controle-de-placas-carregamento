@@ -6,6 +6,11 @@ import { formatBodyType, formatCurrency, formatDate, formatDateTime, formatTime,
 
 const PAGE_SIZE = 10;
 
+export const getSafePage = (currentPage, totalItems, pageSize = PAGE_SIZE) => {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  return Math.min(Math.max(1, currentPage), totalPages);
+};
+
 const columns = [
   'ordem',
   'data',
@@ -126,15 +131,16 @@ function AuditInfo({ item }) {
 export default function PlacasTable({ items, onAction, onMove, onEdit, onAudit, onReopen, onPriority, onOtherLocation, onMoveToPosition, finalizados = false, busyId, canViewAudit = false, canManageQueue = false }) {
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
+  const currentPage = getSafePage(page, items.length, PAGE_SIZE);
   const pageStartIndex = (currentPage - 1) * PAGE_SIZE;
   const pageItems = useMemo(() => items.slice(pageStartIndex, pageStartIndex + PAGE_SIZE), [items, pageStartIndex]);
   const startItem = items.length ? pageStartIndex + 1 : 0;
   const endItem = Math.min(pageStartIndex + pageItems.length, items.length);
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+    const safePage = getSafePage(page, items.length, PAGE_SIZE);
+    if (page !== safePage) setPage(safePage);
+  }, [items.length, page]);
 
   if (!items.length) {
     return <div className="empty-state">Nenhum registro encontrado.</div>;

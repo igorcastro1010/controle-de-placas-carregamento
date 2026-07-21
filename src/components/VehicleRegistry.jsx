@@ -10,6 +10,11 @@ const emptyFilters = {
 
 const pageSizeOptions = [5, 10, 20, 50];
 
+function getSafePage(currentPage, totalItems, pageSize) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  return Math.min(Math.max(1, currentPage), totalPages);
+}
+
 function VehicleCard({ item }) {
   return (
     <article className="vehicle-registry-card">
@@ -92,7 +97,7 @@ export default function VehicleRegistry() {
 
   const filteredItems = useMemo(() => items.filter((item) => matchesVehicleGroup(item, filters.vehicle_group)), [filters.vehicle_group, items]);
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
+  const currentPage = getSafePage(page, filteredItems.length, pageSize);
   const pageStartIndex = (currentPage - 1) * pageSize;
   const pageItems = filteredItems.slice(pageStartIndex, pageStartIndex + pageSize);
 
@@ -101,8 +106,9 @@ export default function VehicleRegistry() {
   }, [filters.placa, filters.motorista, filters.vehicle_group, pageSize]);
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+    const safePage = getSafePage(page, filteredItems.length, pageSize);
+    if (page !== safePage) setPage(safePage);
+  }, [filteredItems.length, page, pageSize]);
 
   const setFilter = (field, value) => setFilters((current) => ({ ...current, [field]: value }));
 
