@@ -16,7 +16,7 @@ Capturas de demonstração local com dados fictícios, preparadas em 22/10/2026.
 
 ### Indicadores e fila de chamada
 
-![Indicadores e fila com veículos e motoristas fictícios](assets/app-preview.png)
+![Indicadores e fila com veículos e motoristas fictícios](assets/funcionalidades-demo.png)
 
 ### Relatório por período
 
