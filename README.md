@@ -1,3 +1,15 @@
+<p align="center"><img src="assets/github-cover.svg" alt="Controle de Placas" width="100%"></p>
+
+> **Controle de Placas** · Gestão da fila de carregamento com atualização em tempo real.
+>
+> React · Vite · Supabase
+
+[Documentação](#documentação) · [Arquivos](https://github.com/igorcastro1010/controle-de-placas-carregamento) · [Mais projetos](https://github.com/igorcastro1010)
+
+---
+
+## Documentação
+
 # CONTROLE DE PLACAS - CARREGAMENTO
 
 Sistema web em React + Vite para controlar a fila de placas de motoristas que vão carregar, usando Supabase Auth, Supabase Database e deploy preparado para Vercel.
