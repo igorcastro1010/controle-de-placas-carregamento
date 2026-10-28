@@ -81,9 +81,16 @@ Se as atualizações automáticas não funcionarem, habilite as tabelas na publi
 ```sql
 ALTER PUBLICATION supabase_realtime ADD TABLE public.placas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.placas_auditoria;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.veiculos_motoristas;
 ```
 
 Se o Supabase informar que a tabela já faz parte da publicação, pode ignorar o aviso. O botão `Atualizar` continua disponível como backup manual.
+
+Para habilitar apenas o cadastro de veiculos de forma idempotente, execute
+`supabase/migrations/enable_veiculos_realtime.sql`. Os testes locais simulam
+WebSocket e nao comprovam que a publicacao esteja configurada no banco remoto.
+
+Veja `docs/revisao-sistema.md` para o escopo da revisao, correcoes e limites de validacao.
 
 ## Auditoria e permissões
 

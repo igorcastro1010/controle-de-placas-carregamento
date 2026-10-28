@@ -91,6 +91,9 @@ export default function Dashboard({ user, onLogout }) {
   const auditItemRef = useRef(null);
   const refreshAuditRef = useRef(null);
   const activeTabRef = useRef('fila');
+  const dataRequestRef = useRef(0);
+  const finishedRequestRef = useRef(0);
+  const detailsRequestRef = useRef(0);
   const [activeTab, setActiveTab] = useState('fila');
   const [queueVehicleTab, setQueueVehicleTab] = useState('todos');
   const [items, setItems] = useState([]);
@@ -174,20 +177,24 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const loadFinishedData = useCallback(async ({ silent = false } = {}) => {
+    const requestId = ++finishedRequestRef.current;
     if (!silent) setLoading(true);
     setError('');
     try {
       const finished = await fetchPlacas({ finalizados: true, filters: finishedFilters });
+      if (requestId !== finishedRequestRef.current) return;
       setFinishedItems(finished);
     } catch (err) {
+      if (requestId !== finishedRequestRef.current) return;
       console.error('Erro ao carregar encerrados:', err);
       setError(err.message || 'Não foi possível carregar os dados. Tente atualizar.');
     } finally {
-      if (!silent) setLoading(false);
+      if (requestId === finishedRequestRef.current) setLoading(false);
     }
   }, [finishedFilters]);
 
   const loadData = useCallback(async ({ silent = false } = {}) => {
+    const requestId = ++dataRequestRef.current;
     if (!silent) setLoading(true);
     setError('');
     try {
@@ -195,14 +202,16 @@ export default function Dashboard({ user, onLogout }) {
         fetchPlacasAtivas({ filters }),
         fetchTodayReport(),
       ]);
+      if (requestId !== dataRequestRef.current) return;
       setItems(activeData.filaChamada);
       setInProgressItems(activeData.emAndamento);
       setReport(dailyReport);
     } catch (err) {
+      if (requestId !== dataRequestRef.current) return;
       console.error('Erro ao carregar dashboard:', err);
       setError(err.message || 'Não foi possível carregar os dados. Tente atualizar.');
     } finally {
-      if (!silent) setLoading(false);
+      if (requestId === dataRequestRef.current) setLoading(false);
     }
   }, [filters]);
 
@@ -217,6 +226,7 @@ export default function Dashboard({ user, onLogout }) {
   }, [activeTab, loadFinishedData]);
 
   const loadReportDetails = useCallback(async ({ silent = false } = {}) => {
+    const requestId = ++detailsRequestRef.current;
     if (!selectedReportCard) return;
 
     if (!silent) setDetailsLoading(true);
@@ -227,11 +237,13 @@ export default function Dashboard({ user, onLogout }) {
         date: detailsDate,
         search: detailsSearch,
       });
+      if (requestId !== detailsRequestRef.current) return;
       setDetailsItems(data);
     } catch (err) {
+      if (requestId !== detailsRequestRef.current) return;
       setDetailsError(err.message || 'Não foi possível carregar os detalhes.');
     } finally {
-      if (!silent) setDetailsLoading(false);
+      if (requestId === detailsRequestRef.current) setDetailsLoading(false);
     }
   }, [detailsDate, detailsSearch, selectedReportCard]);
 
@@ -291,19 +303,24 @@ export default function Dashboard({ user, onLogout }) {
 
     setRealtimeStatus('connecting');
 
-    const scheduleRefresh = (includeAudit = false) => {
+    const pending = { placas: false, audit: false, vehicles: false };
+    const scheduleRefresh = (kind = 'placas') => {
+      pending[kind] = true;
       if (realtimeTimerRef.current) window.clearTimeout(realtimeTimerRef.current);
 
       realtimeTimerRef.current = window.setTimeout(async () => {
         try {
+          const changes = { ...pending };
+          pending.placas = pending.audit = pending.vehicles = false;
           const currentTab = activeTabRef.current;
-          await loadDataRef.current?.({ silent: true });
-          if (currentTab === 'finalizados') await loadFinishedDataRef.current?.({ silent: true });
-          if (currentTab === 'relatorio') setPeriodRefreshKey((current) => current + 1);
-          if (currentTab === 'veiculos') setVehicleRefreshKey((current) => current + 1);
-          await loadReportDetailsRef.current?.({ silent: true });
-          if (includeAudit) await refreshAuditRef.current?.();
-          setRealtimeStatus('active');
+          if (changes.placas) {
+            await loadDataRef.current?.({ silent: true });
+            if (currentTab === 'finalizados') await loadFinishedDataRef.current?.({ silent: true });
+            if (currentTab === 'relatorio') setPeriodRefreshKey((current) => current + 1);
+            await loadReportDetailsRef.current?.({ silent: true });
+          }
+          if (changes.vehicles && currentTab === 'veiculos') setVehicleRefreshKey((current) => current + 1);
+          if (changes.audit) await refreshAuditRef.current?.();
         } catch (err) {
           console.error('Não foi possível atualizar dados em tempo real.', err);
           setRealtimeStatus('disconnected');
@@ -313,15 +330,20 @@ export default function Dashboard({ user, onLogout }) {
 
     const placasChannel = supabase
       .channel('placas-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'placas' }, () => scheduleRefresh(false))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'placas' }, () => scheduleRefresh('placas'))
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') setRealtimeStatus('active');
         if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) setRealtimeStatus('disconnected');
       });
 
+    const vehiclesChannel = supabase
+      .channel('veiculos-motoristas-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'veiculos_motoristas' }, () => scheduleRefresh('vehicles'))
+      .subscribe();
+
     const auditoriaChannel = supabase
       .channel('placas-auditoria-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'placas_auditoria' }, () => scheduleRefresh(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'placas_auditoria' }, () => scheduleRefresh('audit'))
       .subscribe((status) => {
         if (['CHANNEL_ERROR', 'TIMED_OUT'].includes(status)) {
           console.warn('Realtime de auditoria indisponível.');
@@ -331,6 +353,7 @@ export default function Dashboard({ user, onLogout }) {
     return () => {
       if (realtimeTimerRef.current) window.clearTimeout(realtimeTimerRef.current);
       supabase.removeChannel(placasChannel);
+      supabase.removeChannel(vehiclesChannel);
       supabase.removeChannel(auditoriaChannel);
     };
   }, []);
@@ -589,7 +612,10 @@ export default function Dashboard({ user, onLogout }) {
           detalhes: movementDetails('end', beforePositions[item.id], afterPositions[item.id]),
         });
       } else {
-        const target = direction === 'up' ? sourceItems[index - 1] : sourceItems[index + 1];
+        const fullQueue = await fetchFilaVisualItems();
+        const realIndex = fullQueue.findIndex((current) => current.id === item.id);
+        if (realIndex === -1) return;
+        const target = fullQueue[realIndex + (direction === 'up' ? -1 : 1)];
         if (!target) return;
         await swapOrder(item, target);
         const afterPositions = await fetchFilaVisualPositions();
@@ -872,8 +898,13 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    onLogout();
+    try {
+      await signOut();
+      onLogout();
+    } catch (err) {
+      console.error('Erro ao sair:', err);
+      setError('Não foi possível sair. Tente novamente.');
+    }
   };
 
   const handleOpenAudit = async (item) => {
@@ -969,7 +1000,7 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === 'veiculos' && canManageQueue ? (
           <VehicleRegistry refreshSignal={vehicleRefreshKey} />
         ) : activeTab === 'relatorio' ? (
-          <PeriodReport refreshSignal={periodRefreshKey} />
+          <PeriodReport refreshSignal={periodRefreshKey} canViewAudit={canViewAudit} />
         ) : activeTab === 'fila' ? (
           <>
             <Filters filters={filters} onChange={setFilters} onClear={() => setFilters(emptyFilters)} />

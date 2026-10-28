@@ -53,6 +53,21 @@ export const setKeepConnectedPreference = (keepConnected) => {
 
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        fetch: async (input, init = {}) => {
+          const controller = new AbortController();
+          const abort = () => controller.abort();
+          if (init.signal?.aborted) abort();
+          init.signal?.addEventListener('abort', abort, { once: true });
+          const timeout = window.setTimeout(abort, 20000);
+          try {
+            return await fetch(input, { ...init, signal: controller.signal });
+          } finally {
+            window.clearTimeout(timeout);
+            init.signal?.removeEventListener('abort', abort);
+          }
+        },
+      },
       auth: {
         persistSession: true,
         storage: browserStorage,

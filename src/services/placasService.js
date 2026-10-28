@@ -13,7 +13,7 @@ export const STATUSES = [
 export const OUTRO_LOCAL_STATUS = 'Carregado em outro local';
 export const OUTRO_LOCAL_LABEL = 'Carregou em outro local';
 
-export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado'];
+export const ACTIVE_EXCLUDED_STATUSES = ['Finalizado', 'Cancelado', OUTRO_LOCAL_STATUS];
 export const STATUS_FILA_ATUAL = ['Aguardando', 'Não atendeu'];
 export const LEGACY_CALL_STATUSES = ['1ª ligação feita', '2ª ligação feita', '3ª ligação feita'];
 export const STATUS_EM_ANDAMENTO = ['Chamado', 'Chegou', 'Carregando'];
@@ -131,6 +131,8 @@ const VEICULOS_MOTORISTAS_COLUMNS = `
   rota_3,
   ultimo_uso_em,
   atualizado_por,
+  criado_por,
+  observacao_padrao,
   created_at,
   updated_at
 `;
@@ -162,7 +164,12 @@ export const normalizeSearch = (value) =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
 
-export const isOutroLocalRecord = (item) => normalizeSearch(item?.ocorrido).includes(normalizeSearch(OUTRO_LOCAL_LABEL));
+export const isOutroLocalRecord = (item) => {
+  if (normalizeStatus(item?.status) === normalizeStatus(OUTRO_LOCAL_STATUS)) return true;
+  if (normalizeStatus(item?.status) !== 'finalizado') return false;
+  const notes = String(item?.ocorrido || '').split(/\[reabertura\]/i).at(-1);
+  return normalizeSearch(notes).includes(normalizeSearch(OUTRO_LOCAL_LABEL));
+};
 export const isLegacyCallStatus = (status) => LEGACY_CALL_STATUSES.some((callStatus) => normalizeStatus(callStatus) === normalizeStatus(status));
 
 export const isManager = (user) => MANAGERS.includes(String(user?.email || '').trim().toLowerCase());
@@ -409,10 +416,13 @@ async function safeSyncVeiculoMotorista(source, user) {
   }
 }
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+export const todayISO = () => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Fortaleza', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date());
 
 export const currentTime = () =>
   new Date().toLocaleTimeString('pt-BR', {
+    timeZone: 'America/Fortaleza',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -731,6 +741,10 @@ export async function moveToQueuePosition(item, targetPosition) {
     throw new Error(`Informe uma posição entre 1 e ${queueItems.length}.`);
   }
 
+  if (Boolean(queueItems[currentIndex].prioridade_local) !== Boolean(queueItems[normalizedTarget - 1].prioridade_local)) {
+    throw new Error('A posição pertence a outro grupo de prioridade. Ajuste a prioridade local antes de mover.');
+  }
+
   const currentPosition = currentIndex + 1;
   const [movingItem] = queueItems.splice(currentIndex, 1);
 
@@ -785,7 +799,7 @@ export async function createPlaca(payload, user) {
   const now = new Date();
   const record = {
     ...recordPayload,
-    data: now.toISOString().slice(0, 10),
+    data: todayISO(),
     hora: currentTime(),
     ordem: nextOrder,
     status: 'Aguardando',
@@ -823,7 +837,14 @@ export async function moveToEnd(item) {
     .filter((activeItem) => isStatusFilaAtual(activeItem.status))
     .reduce((maxOrder, activeItem) => Math.max(maxOrder, activeItem.ordem || 0), item.ordem || 0);
 
-  return updatePlaca(item.id, { ordem: maxQueueOrder + 1 });
+  return updatePlaca(item.id, {
+    ordem: maxQueueOrder + 1,
+    prioridade_local: false,
+    retorno_local: false,
+    prioridade_motivo: null,
+    prioridade_por: null,
+    prioridade_em: null,
+  });
 }
 
 export async function cancelCargaAndReturnToQueue(item, payload = {}) {
@@ -863,25 +884,19 @@ export async function addPrioridadeLocal(item, user, reason = 'RETORNO DE ENTREG
 }
 
 export async function removePrioridadeLocal(item) {
-  const { data: activeItems, error: orderError } = await supabase.from('placas').select('id, ordem, status').not('status', 'in', inactiveStatusFilter()).order('ordem', { ascending: false });
-  if (orderError) throw orderError;
-
-  const maxQueueOrder = (activeItems || [])
-    .filter((activeItem) => isStatusFilaAtual(activeItem.status))
-    .reduce((maxOrder, activeItem) => Math.max(maxOrder, activeItem.ordem || 0), item.ordem || 0);
-
-  return updatePlaca(item.id, {
-    prioridade_local: false,
-    ordem: maxQueueOrder + 1,
-  });
+  return moveToEnd(item);
 }
 
 export async function reopenPlaca(item, reason) {
   const reopenReason = toUpperText(reason);
+  if (!reopenReason) throw new Error('Informe o motivo da reabertura.');
+  await ensurePlateIsNotDuplicated(item, item.id);
   const reopened = await updatePlaca(item.id, {
     status: 'Aguardando',
     cancelado_por: null,
     cancelado_em: null,
+    finalizado_por: null,
+    finalizado_em: null,
     ocorrido: item.ocorrido ? `${item.ocorrido}\n[Reabertura] ${reopenReason}` : `[Reabertura] ${reopenReason}`,
   });
 
@@ -889,6 +904,9 @@ export async function reopenPlaca(item, reason) {
 }
 
 export async function swapOrder(current, target) {
+  if (Boolean(current.prioridade_local) !== Boolean(target.prioridade_local)) {
+    throw new Error('Ajuste a prioridade local antes de mover entre grupos de prioridade.');
+  }
   const updates = [
     supabase.from('placas').update({ ordem: target.ordem }).eq('id', current.id),
     supabase.from('placas').update({ ordem: current.ordem }).eq('id', target.id),

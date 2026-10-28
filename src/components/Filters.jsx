@@ -36,7 +36,7 @@ export default function Filters({ filters, onChange, onClear, finalizados = fals
                 <input value={filters.motorista || ''} onChange={(event) => setFilter('motorista', event.target.value)} placeholder="Buscar motorista" />
               </label>
               <label>
-                Tipo de veÃ­culo
+                Tipo de veículo
                 <select value={filters.tipo_veiculo || ''} onChange={(event) => setFilter('tipo_veiculo', event.target.value)}>
                   <option value="">Todos</option>
                   <option value="Truck">Truck</option>
@@ -84,7 +84,7 @@ export default function Filters({ filters, onChange, onClear, finalizados = fals
                 <input value={filters.busca || ''} onChange={(event) => setFilter('busca', event.target.value)} placeholder="Digite a placa ou nome" />
               </label>
               <label>
-                Tipo de veÃ­culo
+                Tipo de veículo
                 <select value={filters.tipo_veiculo || ''} onChange={(event) => setFilter('tipo_veiculo', event.target.value)}>
                   <option value="">Todos</option>
                   <option value="Truck">Truck</option>

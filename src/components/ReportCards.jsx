@@ -15,7 +15,7 @@ export const reportCards = [
 export default function ReportCards({ report, activeKey, onSelect }) {
   return (
     <section className="report-grid" aria-label="Relatório do dia">
-      {reportCards.map(({ key, label, group, icon: Icon, className, status, defaultToday }) => (
+      {reportCards.map(({ key, label, group, icon: Icon, className, status, defaultToday = true }) => (
         <button className={`report-card ${className} ${activeKey === key ? 'active' : ''}`} key={key} type="button" onClick={() => onSelect?.({ key, label, status, defaultToday })}>
           <div>
             <small>{group}</small>

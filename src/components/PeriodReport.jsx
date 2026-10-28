@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Filter, RefreshCw } from 'lucide-react';
 import {
   REPORT_STATUSES,
@@ -46,23 +46,27 @@ function DetailLine({ label, value }) {
   );
 }
 
-export default function PeriodReport({ refreshSignal = 0 }) {
+export default function PeriodReport({ refreshSignal = 0, canViewAudit = false }) {
   const [filters, setFilters] = useState(initialFilters);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const requestRef = useRef(0);
 
   const loadReport = async () => {
+    const requestId = ++requestRef.current;
     setLoading(true);
     setError('');
     try {
       const data = await fetchPeriodReport(filters);
+      if (requestId !== requestRef.current) return;
       setItems(data);
     } catch (err) {
+      if (requestId !== requestRef.current) return;
       setError(err.message || 'Não foi possível carregar o relatório.');
     } finally {
-      setLoading(false);
+      if (requestId === requestRef.current) setLoading(false);
     }
   };
 
@@ -253,12 +257,12 @@ export default function PeriodReport({ refreshSignal = 0 }) {
                 />
                 <DetailLine label="Ligações" value={`1ª ${formatTime(item.primeira_ligacao)} | 2ª ${formatTime(item.segunda_ligacao)} | 3ª ${formatTime(item.terceira_ligacao)}`} />
                 <DetailLine label="Responsável" value={item.responsavel_email || item.responsavel} />
-                {!isOutroLocalRecord(item) && <DetailLine label="Finalizado por" value={item.finalizado_por} />}
-                {!isOutroLocalRecord(item) && <DetailLine label="Finalizado em" value={formatDateTime(item.finalizado_em)} />}
-                <DetailLine label="Cancelado por" value={item.cancelado_por} />
-                <DetailLine label="Cancelado em" value={formatDateTime(item.cancelado_em)} />
-                {isOutroLocalRecord(item) && <DetailLine label="Carregou em outro local por" value={item.finalizado_por} />}
-                {isOutroLocalRecord(item) && <DetailLine label="Carregou em outro local em" value={formatDateTime(item.finalizado_em)} />}
+                {canViewAudit && !isOutroLocalRecord(item) && <DetailLine label="Finalizado por" value={item.finalizado_por} />}
+                {canViewAudit && !isOutroLocalRecord(item) && <DetailLine label="Finalizado em" value={formatDateTime(item.finalizado_em)} />}
+                {canViewAudit && <DetailLine label="Cancelado por" value={item.cancelado_por} />}
+                {canViewAudit && <DetailLine label="Cancelado em" value={formatDateTime(item.cancelado_em)} />}
+                {canViewAudit && isOutroLocalRecord(item) && <DetailLine label="Carregou em outro local por" value={item.finalizado_por} />}
+                {canViewAudit && isOutroLocalRecord(item) && <DetailLine label="Carregou em outro local em" value={formatDateTime(item.finalizado_em)} />}
                 {isOutroLocalRecord(item) && <DetailLine label="Motivo" value="Carregou em outro local" />}
                 {item.ocorrido && <DetailLine label="Ocorrido" value={item.ocorrido} />}
               </div>
