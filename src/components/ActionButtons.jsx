@@ -119,7 +119,7 @@ export default function ActionButtons({ item, index, itemsLength, busyId, canVie
     };
 
     const handleViewportChange = () => {
-      setMenuOpen(false);
+      positionMenu();
     };
 
     document.addEventListener('mousedown', handleOutsideClick);

@@ -10,6 +10,7 @@ const emptyForm = {
   placa_carreta: '',
   entrega_local: false,
   retorno_local: false,
+  motorista_prioridade: false,
   prioridade_local: false,
   prioridade_motivo: '',
   prioridade_por: '',
@@ -34,6 +35,7 @@ function formFromItem(item) {
     placa_carreta: toUpperText(item.placa_carreta),
     entrega_local: Boolean(item.entrega_local),
     retorno_local: Boolean(item.retorno_local),
+    motorista_prioridade: Boolean(item.motorista_prioridade),
     prioridade_local: Boolean(item.prioridade_local),
     prioridade_motivo: toUpperText(item.prioridade_motivo),
     prioridade_por: item.prioridade_por || '',
@@ -166,6 +168,10 @@ export default function EditPlacaModal({ item, saving, error, onClose, onSave })
                 </span>
               </label>
             </section>
+            <label className="checkbox-field operation-checkbox full-width">
+              <input type="checkbox" checked={form.motorista_prioridade} onChange={(event) => updateField('motorista_prioridade', event.target.checked)} />
+              <span>Motorista prioridade: carrega conosco há mais tempo</span>
+            </label>
             <label className="full-width">
               Ocorrido
               <textarea value={form.ocorrido} onChange={(event) => updateField('ocorrido', event.target.value)} rows="3" />

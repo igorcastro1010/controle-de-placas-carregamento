@@ -1,8 +1,34 @@
 import { useState } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { signIn } from '../services/placasService';
+import { isSupabaseConfigured } from '../services/supabaseClient';
 
 const rememberedEmailKey = 'controle_placas_remembered_email';
+
+function getLoginErrorMessage(error) {
+  const message = String(error?.message || '').toLowerCase();
+
+  if (!isSupabaseConfigured || message.includes('configuração do supabase')) {
+    return 'Configuração do Supabase não encontrada.';
+  }
+
+  if (message.includes('invalid login credentials') || message.includes('invalid credentials')) {
+    return 'E-mail ou senha incorretos.';
+  }
+
+  if (
+    message.includes('fetch') ||
+    message.includes('network') ||
+    message.includes('tempo esgotado') ||
+    message.includes('timeout') ||
+    message.includes('failed to fetch') ||
+    message.includes('load failed')
+  ) {
+    return 'Não foi possível conectar ao servidor. Tente novamente.';
+  }
+
+  return 'Não foi possível entrar. Tente novamente.';
+}
 
 export default function Login({ onLogin }) {
   const savedEmail = localStorage.getItem(rememberedEmailKey) || '';
@@ -23,9 +49,15 @@ export default function Login({ onLogin }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (loading) return;
+
     setLoading(true);
     setError('');
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error('Configuração do Supabase não encontrada.');
+      }
+
       if (rememberEmail) {
         localStorage.setItem(rememberedEmailKey, email);
       } else {
@@ -35,7 +67,8 @@ export default function Login({ onLogin }) {
       const { user } = await signIn(email, password, { keepConnected });
       onLogin(user);
     } catch (err) {
-      setError(err.message || 'Não foi possível entrar.');
+      console.error('Erro completo do Supabase ao fazer login:', err);
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }

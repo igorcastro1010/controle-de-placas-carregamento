@@ -4,6 +4,32 @@ Sistema web em React + Vite para controlar a fila de placas de motoristas que v�
 
 ## Funcionalidades
 
+### Motoristas prioridade
+
+Antes de usar esta funcionalidade em um banco existente, execute no SQL Editor
+do Supabase o arquivo `supabase/migrations/add_motorista_prioridade.sql`:
+
+```sql
+alter table public.placas
+  add column if not exists motorista_prioridade boolean not null default false;
+notify pgrst, 'reload schema';
+```
+
+No cadastro ou na edicao da marcacao, a caixa "Motorista prioridade: carrega conosco
+ha mais tempo" identifica parceiros antigos. A aba "Motoristas prioridade" mostra
+somente esses registros da Fila de Chamada, respeitando os filtros atuais e mantendo
+a posicao real da fila geral. Essa classificacao nao muda `ordem`, status nem
+`prioridade_local`. A marcacao pertence ao registro da fila; nao e aplicada
+automaticamente a novos cadastros futuros do mesmo motorista.
+
+### Testes com Playwright
+
+Execute `npm install`, `npx playwright install chromium` e `npm run test:e2e`.
+Os testes usam Supabase simulado, dados ficticios e um servidor local na porta 5187;
+nao gravam no banco real. Cobrem desktop e celular. A skill
+`currents-dev/playwright-best-practices-skill` (MIT) foi instalada no Codex para
+orientar testes e investigacao de erros; ela nao faz parte do codigo publicado.
+
 - Login com Supabase Auth.
 - Cadastro de placa com data, hora, ordem, status inicial e responsável automáticos.
 - Tipo de veículo: Truck ou Carreta, com placa do cavalo e placa da carreta.

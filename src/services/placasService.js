@@ -31,6 +31,112 @@ export const REPORT_STATUSES = [
   OUTRO_LOCAL_STATUS,
 ];
 
+const PLACAS_LIST_COLUMNS = `
+  id,
+  ordem,
+  data,
+  hora,
+  placa,
+  tipo_veiculo,
+  tipo_carroceria,
+  carroceria,
+  placa_cavalo,
+  placa_carreta,
+  entrega_local,
+  retorno_local,
+  motorista_prioridade,
+  prioridade_local,
+  prioridade_motivo,
+  prioridade_por,
+  prioridade_em,
+  motorista,
+  telefone,
+  rota_1,
+  rota_2,
+  rota_3,
+  cidade_destino,
+  valor_frete_carreteiro,
+  primeira_ligacao,
+  segunda_ligacao,
+  terceira_ligacao,
+  status,
+  responsavel_id,
+  responsavel_email,
+  ocorrido,
+  finalizado_por,
+  finalizado_em,
+  cancelado_por,
+  cancelado_em,
+  carregado_outro_local_por,
+  carregado_outro_local_em,
+  carregado_outro_local_motivo,
+  carregado_outro_local_local,
+  created_at,
+  updated_at
+`;
+
+const PLACAS_REPORT_COLUMNS = `
+  id,
+  ordem,
+  data,
+  hora,
+  placa,
+  tipo_veiculo,
+  tipo_carroceria,
+  carroceria,
+  placa_cavalo,
+  placa_carreta,
+  entrega_local,
+  retorno_local,
+  motorista_prioridade,
+  prioridade_local,
+  motorista,
+  telefone,
+  rota_1,
+  rota_2,
+  rota_3,
+  cidade_destino,
+  valor_frete_carreteiro,
+  primeira_ligacao,
+  segunda_ligacao,
+  terceira_ligacao,
+  status,
+  responsavel_email,
+  ocorrido,
+  finalizado_por,
+  finalizado_em,
+  cancelado_por,
+  cancelado_em,
+  created_at,
+  updated_at
+`;
+
+const TODAY_REPORT_COLUMNS = 'id,status,data,tipo_veiculo,tipo_carroceria,carroceria,entrega_local,prioridade_local,ocorrido';
+
+const VEICULOS_MOTORISTAS_COLUMNS = `
+  id,
+  tipo_veiculo,
+  tipo_carroceria,
+  carroceria,
+  placa,
+  placa_normalizada,
+  placa_cavalo,
+  placa_cavalo_normalizada,
+  placa_carreta,
+  placa_carreta_normalizada,
+  motorista,
+  telefone,
+  rota_1,
+  rota_2,
+  rota_3,
+  ultimo_uso_em,
+  atualizado_por,
+  created_at,
+  updated_at
+`;
+
+const AUDITORIA_COLUMNS = 'id,placa_id,acao,status_anterior,status_novo,ordem_anterior,ordem_nova,alterado_por,alterado_por_id,detalhes,created_at';
+
 export const normalizeStatus = (status) =>
   String(status || '')
     .trim()
@@ -114,6 +220,7 @@ function normalizeVehiclePayload(payload) {
     placa_carreta: isCarreta ? toUpperOrNull(payload.placa_carreta) : null,
     entrega_local: Boolean(payload.entrega_local),
     retorno_local: retornoLocal,
+    motorista_prioridade: Boolean(payload.motorista_prioridade),
     prioridade_local: prioridadeLocal,
     prioridade_motivo: prioridadeLocal ? prioridadeMotivo : null,
     prioridade_por: prioridadeLocal ? payload.prioridade_por || null : null,
@@ -197,7 +304,7 @@ export async function findVeiculoMotoristaByPlate(plate) {
 
   const { data, error } = await supabase
     .from('veiculos_motoristas')
-    .select('*')
+    .select(VEICULOS_MOTORISTAS_COLUMNS)
     .or(vehiclePlateOrFilter([normalizedPlate]))
     .order('ultimo_uso_em', { ascending: false, nullsFirst: false })
     .limit(1)
@@ -207,13 +314,41 @@ export async function findVeiculoMotoristaByPlate(plate) {
 }
 
 export async function fetchVeiculosMotoristas(filters = {}) {
-  let query = supabase.from('veiculos_motoristas').select('*').order('ultimo_uso_em', { ascending: false, nullsFirst: false }).order('updated_at', { ascending: false });
+  const hasPagination = Number.isFinite(Number(filters.page)) && Number.isFinite(Number(filters.pageSize));
+  let query = supabase
+    .from('veiculos_motoristas')
+    .select(VEICULOS_MOTORISTAS_COLUMNS, hasPagination ? { count: 'exact' } : undefined)
+    .order('ultimo_uso_em', { ascending: false, nullsFirst: false })
+    .order('updated_at', { ascending: false });
 
   if (filters.motorista) query = query.ilike('motorista', `%${filters.motorista}%`);
-  if (filters.placa) query = query.or(vehiclePlateOrFilter([filters.placa]));
+  if (filters.placa) {
+    const normalizedPlate = normalizePlate(filters.placa);
+    query = query.or(
+      [
+        `placa.ilike.%${filters.placa}%`,
+        `placa_cavalo.ilike.%${filters.placa}%`,
+        `placa_carreta.ilike.%${filters.placa}%`,
+        `placa_normalizada.ilike.%${normalizedPlate}%`,
+        `placa_cavalo_normalizada.ilike.%${normalizedPlate}%`,
+        `placa_carreta_normalizada.ilike.%${normalizedPlate}%`,
+      ].join(',')
+    );
+  }
+  if (filters.vehicle_group === 'truck') query = query.eq('tipo_veiculo', 'Truck');
+  if (filters.vehicle_group === 'carreta_bau') query = query.eq('tipo_veiculo', 'Carreta').eq('tipo_carroceria', 'BAU');
+  if (filters.vehicle_group === 'carreta_sider') query = query.eq('tipo_veiculo', 'Carreta').eq('tipo_carroceria', 'SIDER');
+  if (hasPagination) {
+    const currentPage = Math.max(1, Number(filters.page));
+    const size = Math.max(1, Number(filters.pageSize));
+    const from = (currentPage - 1) * size;
+    query = query.range(from, from + size - 1);
+  }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
+
+  if (hasPagination) return { items: data || [], total: count || 0 };
 
   if (!filters.placa) return data || [];
 
@@ -226,7 +361,7 @@ export async function salvarOuAtualizarVeiculoMotorista(source, user) {
   if (!recordPayload.placa) return null;
   const lookupFilter = vehiclePlateOrFilter([recordPayload.placa_normalizada, recordPayload.placa_cavalo_normalizada, recordPayload.placa_carreta_normalizada]);
 
-  const { data: existingItems, error: fetchError } = await supabase.from('veiculos_motoristas').select('*').or(lookupFilter).limit(1);
+  const { data: existingItems, error: fetchError } = await supabase.from('veiculos_motoristas').select(VEICULOS_MOTORISTAS_COLUMNS).or(lookupFilter).limit(1);
   if (fetchError) throw fetchError;
 
   const existing = existingItems?.[0] || null;
@@ -242,7 +377,7 @@ export async function salvarOuAtualizarVeiculoMotorista(source, user) {
         atualizado_por_id: user?.id || null,
       })
       .eq('id', existing.id)
-      .select()
+      .select(VEICULOS_MOTORISTAS_COLUMNS)
       .single();
     if (error) throw error;
     return data;
@@ -258,7 +393,7 @@ export async function salvarOuAtualizarVeiculoMotorista(source, user) {
       atualizado_por: user?.email || null,
       atualizado_por_id: user?.id || null,
     })
-    .select()
+    .select(VEICULOS_MOTORISTAS_COLUMNS)
     .single();
   if (error) throw error;
   return data;
@@ -338,15 +473,30 @@ export const getVehicleGroup = (item = {}) => {
 
 export const matchesVehicleGroup = (item, group) => !group || group === 'todos' || getVehicleGroup(item) === group;
 
+const AUTH_TIMEOUT_MS = 15000;
+
+function withAuthTimeout(promise, message = 'Tempo esgotado ao conectar ao Supabase.') {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), AUTH_TIMEOUT_MS);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
+}
+
 export async function getSession() {
-  const { data, error } = await supabase.auth.getSession();
+  if (!supabase) throw new Error('Configuração do Supabase não encontrada.');
+
+  const { data, error } = await withAuthTimeout(supabase.auth.getSession());
   if (error) throw error;
   return data.session;
 }
 
 export async function signIn(email, password, { keepConnected = true } = {}) {
+  if (!supabase) throw new Error('Configuração do Supabase não encontrada.');
+
   setKeepConnectedPreference(keepConnected);
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await withAuthTimeout(supabase.auth.signInWithPassword({ email, password }));
   if (error) throw error;
   return data;
 }
@@ -356,8 +506,37 @@ export async function signOut() {
   if (error) throw error;
 }
 
+export async function fetchPlacasAtivas({ filters = {} } = {}) {
+  const activeStatuses = [...STATUS_FILA_ATUAL, ...LEGACY_CALL_STATUSES, ...STATUS_EM_ANDAMENTO];
+  const { data, error } = await supabase
+    .from('placas')
+    .select(PLACAS_LIST_COLUMNS)
+    .in('status', activeStatuses)
+    .order('ordem', { ascending: true });
+
+  if (error) throw error;
+
+  const activeData = data || [];
+  const groupPositions = {};
+  const filaCompleta = sortByPriorityAndOrder(activeData.filter((item) => isStatusFilaAtual(item.status))).map((item, index) => {
+    const vehicleGroup = getVehicleGroup(item);
+    groupPositions[vehicleGroup] = (groupPositions[vehicleGroup] || 0) + 1;
+
+    return {
+      ...item,
+      _fila_posicao_real: index + 1,
+      _fila_posicao_grupo: groupPositions[vehicleGroup],
+    };
+  });
+
+  return {
+    filaChamada: filaCompleta.filter((item) => matchesPlacaFilters(item, filters)),
+    emAndamento: activeData.filter((item) => isStatusEmAndamento(item.status)).filter((item) => matchesPlacaFilters(item, filters)),
+  };
+}
+
 export async function fetchPlacas({ finalizados = false, filters = {}, scope = 'fila' } = {}) {
-  let query = supabase.from('placas').select('*');
+  let query = supabase.from('placas').select(PLACAS_LIST_COLUMNS);
 
   if (finalizados) {
     query = query.in('status', ACTIVE_EXCLUDED_STATUSES);
@@ -393,16 +572,24 @@ export async function fetchPlacas({ finalizados = false, filters = {}, scope = '
     return (data || []).filter((item) => matchesPlacaFilters(item, filters));
   }
 
-  const fullQueue = sortByPriorityAndOrder((data || []).filter((item) => isStatusFilaAtual(item.status))).map((item, index) => ({
-    ...item,
-    _fila_posicao_real: index + 1,
-  }));
+  const groupPositions = {};
+  const fullQueue = sortByPriorityAndOrder((data || []).filter((item) => isStatusFilaAtual(item.status))).map((item, index) => {
+    const vehicleGroup = getVehicleGroup(item);
+    groupPositions[vehicleGroup] = (groupPositions[vehicleGroup] || 0) + 1;
+
+    return {
+      ...item,
+      _fila_posicao_real: index + 1,
+      _fila_posicao_grupo: groupPositions[vehicleGroup],
+    };
+  });
 
   return fullQueue.filter((item) => matchesPlacaFilters(item, filters));
 }
 
 export async function fetchTodayReport() {
-  const { data, error } = await supabase.from('placas').select('status, data, ocorrido');
+  const today = todayISO();
+  const { data, error } = await supabase.from('placas').select(TODAY_REPORT_COLUMNS).eq('data', today);
   if (error) throw error;
 
   const initialReport = REPORT_STATUSES.reduce((acc, status) => {
@@ -427,7 +614,7 @@ export async function fetchTodayReport() {
 }
 
 export async function fetchReportDetails({ status, date, search } = {}) {
-  let query = supabase.from('placas').select('*');
+  let query = supabase.from('placas').select(PLACAS_REPORT_COLUMNS);
 
   if (date) query = query.eq('data', date);
   if (search) query = query.or(`placa.ilike.%${search}%,placa_cavalo.ilike.%${search}%,placa_carreta.ilike.%${search}%,motorista.ilike.%${search}%`);
@@ -445,7 +632,7 @@ export async function fetchReportDetails({ status, date, search } = {}) {
 }
 
 export async function fetchPeriodReport(filters = {}) {
-  let query = supabase.from('placas').select('*');
+  let query = supabase.from('placas').select(PLACAS_REPORT_COLUMNS);
 
   const start = filters.start || todayISO();
   const end = filters.end || filters.start || todayISO();
@@ -507,7 +694,7 @@ export async function registrarAuditoria(user, { placaId, acao, statusAnterior, 
 }
 
 export async function fetchAuditoriaPlaca(placaId) {
-  const { data, error } = await supabase.from('placas_auditoria').select('*').eq('placa_id', placaId).order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('placas_auditoria').select(AUDITORIA_COLUMNS).eq('placa_id', placaId).order('created_at', { ascending: false }).limit(100);
   if (error) throw error;
   return data || [];
 }
@@ -606,7 +793,7 @@ export async function createPlaca(payload, user) {
     responsavel_email: user.email,
   };
 
-  const { data, error } = await supabase.from('placas').insert(record).select().single();
+  const { data, error } = await supabase.from('placas').insert(record).select(PLACAS_LIST_COLUMNS).single();
   if (error) throw error;
   const vehicleSync = await safeSyncVeiculoMotorista(data, user);
   if (!vehicleSync.ok) data.veiculoCadastroErro = true;
@@ -623,7 +810,7 @@ export async function updatePlacaCadastro(id, payload, user) {
 }
 
 export async function updatePlaca(id, payload) {
-  const { data, error } = await supabase.from('placas').update(payload).eq('id', id).select().single();
+  const { data, error } = await supabase.from('placas').update(payload).eq('id', id).select(PLACAS_LIST_COLUMNS).single();
   if (error) throw error;
   return data;
 }

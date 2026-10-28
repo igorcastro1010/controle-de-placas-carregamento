@@ -21,6 +21,10 @@ export default function App() {
 
     getSession()
       .then((session) => setUser(session?.user || null))
+      .catch((err) => {
+        console.error('Não foi possível validar a sessão atual.', err);
+        setUser(null);
+      })
       .finally(() => setBooting(false));
 
     const {

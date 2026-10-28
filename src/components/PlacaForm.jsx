@@ -10,6 +10,7 @@ const initialForm = {
   placa_carreta: '',
   entrega_local: false,
   retorno_local: false,
+  motorista_prioridade: false,
   motorista: '',
   telefone: '',
   rota_1: '',
@@ -221,6 +222,11 @@ export default function PlacaForm({ onSubmit, loading, error, embedded = false }
             </span>
           </label>
         </section>
+
+        <label className="checkbox-field operation-checkbox full-width">
+          <input type="checkbox" checked={form.motorista_prioridade} onChange={(event) => updateField('motorista_prioridade', event.target.checked)} />
+          <span>Motorista prioridade: carrega conosco há mais tempo</span>
+        </label>
 
         <label className="full-width">
           Ocorrido

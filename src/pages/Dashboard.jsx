@@ -22,6 +22,7 @@ import {
   fetchFilaVisualItems,
   fetchFilaVisualPositions,
   fetchPlacas,
+  fetchPlacasAtivas,
   fetchReportDetails,
   fetchTodayReport,
   moveToEnd,
@@ -63,6 +64,7 @@ const queueVehicleTabs = [
   { key: 'carreta_bau', label: 'Carreta Baú' },
   { key: 'carreta_sider', label: 'Carreta Sider' },
   { key: 'truck', label: 'Truck' },
+  { key: 'prioridade', label: 'Motoristas prioridade' },
 ];
 
 const movementDetails = (type, fromPosition, toPosition) => {
@@ -84,9 +86,11 @@ export default function Dashboard({ user, onLogout }) {
   const inProgressRef = useRef(null);
   const realtimeTimerRef = useRef(null);
   const loadDataRef = useRef(null);
+  const loadFinishedDataRef = useRef(null);
   const loadReportDetailsRef = useRef(null);
   const auditItemRef = useRef(null);
   const refreshAuditRef = useRef(null);
+  const activeTabRef = useRef('fila');
   const [activeTab, setActiveTab] = useState('fila');
   const [queueVehicleTab, setQueueVehicleTab] = useState('todos');
   const [items, setItems] = useState([]);
@@ -128,6 +132,7 @@ export default function Dashboard({ user, onLogout }) {
   const [auditError, setAuditError] = useState('');
   const [realtimeStatus, setRealtimeStatus] = useState('connecting');
   const [periodRefreshKey, setPeriodRefreshKey] = useState(0);
+  const [vehicleRefreshKey, setVehicleRefreshKey] = useState(0);
 
   const safeRegisterAudit = useCallback(
     async (payload) => {
@@ -149,6 +154,7 @@ export default function Dashboard({ user, onLogout }) {
       placa_carreta: 'Placa da carreta',
       entrega_local: 'Entrega local',
       retorno_local: 'Retorno local',
+      motorista_prioridade: 'Motorista prioridade (parceria antiga)',
       prioridade_local: 'Prioridade local',
       prioridade_motivo: 'Motivo da prioridade',
       motorista: 'Motorista',
@@ -167,30 +173,48 @@ export default function Dashboard({ user, onLogout }) {
       .join('; ');
   };
 
+  const loadFinishedData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    setError('');
+    try {
+      const finished = await fetchPlacas({ finalizados: true, filters: finishedFilters });
+      setFinishedItems(finished);
+    } catch (err) {
+      console.error('Erro ao carregar encerrados:', err);
+      setError(err.message || 'Não foi possível carregar os dados. Tente atualizar.');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [finishedFilters]);
+
   const loadData = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const [active, inProgress, finished, dailyReport] = await Promise.all([
-        fetchPlacas({ filters }),
-        fetchPlacas({ filters, scope: 'andamento' }),
-        fetchPlacas({ finalizados: true, filters: finishedFilters }),
+      const [activeData, dailyReport] = await Promise.all([
+        fetchPlacasAtivas({ filters }),
         fetchTodayReport(),
       ]);
-      setItems(active);
-      setInProgressItems(inProgress);
-      setFinishedItems(finished);
+      setItems(activeData.filaChamada);
+      setInProgressItems(activeData.emAndamento);
       setReport(dailyReport);
     } catch (err) {
-      setError(err.message || 'Não foi possível carregar os dados.');
+      console.error('Erro ao carregar dashboard:', err);
+      setError(err.message || 'Não foi possível carregar os dados. Tente atualizar.');
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [filters, finishedFilters]);
+  }, [filters]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (activeTab === 'finalizados') {
+      loadFinishedData();
+    }
+  }, [activeTab, loadFinishedData]);
 
   const loadReportDetails = useCallback(async ({ silent = false } = {}) => {
     if (!selectedReportCard) return;
@@ -218,15 +242,24 @@ export default function Dashboard({ user, onLogout }) {
   const refreshAfterAction = useCallback(async () => {
     const savedScrollY = window.scrollY;
     await loadData({ silent: true });
+    if (activeTab === 'finalizados') await loadFinishedData({ silent: true });
     if (selectedReportCard) await loadReportDetails({ silent: true });
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: savedScrollY, behavior: 'auto' });
     });
-  }, [loadData, loadReportDetails, selectedReportCard]);
+  }, [activeTab, loadData, loadFinishedData, loadReportDetails, selectedReportCard]);
 
   useEffect(() => {
     loadDataRef.current = loadData;
   }, [loadData]);
+
+  useEffect(() => {
+    loadFinishedDataRef.current = loadFinishedData;
+  }, [loadFinishedData]);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     loadReportDetailsRef.current = loadReportDetails;
@@ -263,16 +296,19 @@ export default function Dashboard({ user, onLogout }) {
 
       realtimeTimerRef.current = window.setTimeout(async () => {
         try {
+          const currentTab = activeTabRef.current;
           await loadDataRef.current?.({ silent: true });
+          if (currentTab === 'finalizados') await loadFinishedDataRef.current?.({ silent: true });
+          if (currentTab === 'relatorio') setPeriodRefreshKey((current) => current + 1);
+          if (currentTab === 'veiculos') setVehicleRefreshKey((current) => current + 1);
           await loadReportDetailsRef.current?.({ silent: true });
-          setPeriodRefreshKey((current) => current + 1);
           if (includeAudit) await refreshAuditRef.current?.();
           setRealtimeStatus('active');
         } catch (err) {
           console.error('Não foi possível atualizar dados em tempo real.', err);
           setRealtimeStatus('disconnected');
         }
-      }, 400);
+      }, 700);
     };
 
     const placasChannel = supabase
@@ -307,13 +343,24 @@ export default function Dashboard({ user, onLogout }) {
   const queueTabCounts = useMemo(
     () =>
       queueVehicleTabs.reduce((acc, tab) => {
-        acc[tab.key] = tab.key === 'todos' ? items.length : items.filter((item) => matchesVehicleGroup(item, tab.key)).length;
+        acc[tab.key] = tab.key === 'prioridade'
+          ? items.filter((item) => item.motorista_prioridade).length
+          : tab.key === 'todos' ? items.length : items.filter((item) => matchesVehicleGroup(item, tab.key)).length;
         return acc;
       }, {}),
     [items]
   );
 
-  const visibleQueueItems = useMemo(() => items.filter((item) => matchesVehicleGroup(item, queueVehicleTab)), [items, queueVehicleTab]);
+  const visibleQueueItems = useMemo(
+    () =>
+      items
+        .filter((item) => queueVehicleTab === 'prioridade' ? item.motorista_prioridade : matchesVehicleGroup(item, queueVehicleTab))
+        .map((item) => ({
+          ...item,
+          _fila_posicao_visual: ['todos', 'prioridade'].includes(queueVehicleTab) ? item._fila_posicao_real : item._fila_posicao_grupo || item._fila_posicao_real,
+        })),
+    [items, queueVehicleTab]
+  );
 
   const handleScrollToInProgress = () => {
     setActiveTab('fila');
@@ -321,6 +368,13 @@ export default function Dashboard({ user, onLogout }) {
       const target = inProgressRef.current || document.getElementById('em-andamento');
       target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
+  };
+
+  const handleManualRefresh = async () => {
+    await loadData();
+    if (activeTab === 'finalizados') await loadFinishedData();
+    if (activeTab === 'relatorio') setPeriodRefreshKey((current) => current + 1);
+    if (activeTab === 'veiculos') setVehicleRefreshKey((current) => current + 1);
   };
 
   const handleSelectReportCard = (card) => {
@@ -864,7 +918,7 @@ export default function Dashboard({ user, onLogout }) {
             <span aria-hidden="true" />
             {realtimeStatus === 'active' ? 'Tempo real ativo' : realtimeStatus === 'connecting' ? 'Conectando tempo real' : 'Tempo real desconectado'}
           </span>
-          <button className="icon-text secondary" type="button" onClick={loadData} disabled={loading}>
+          <button className="icon-text secondary" type="button" onClick={handleManualRefresh} disabled={loading}>
             <RefreshCw size={16} aria-hidden="true" />
             Atualizar
           </button>
@@ -913,7 +967,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
 
         {activeTab === 'veiculos' && canManageQueue ? (
-          <VehicleRegistry />
+          <VehicleRegistry refreshSignal={vehicleRefreshKey} />
         ) : activeTab === 'relatorio' ? (
           <PeriodReport refreshSignal={periodRefreshKey} />
         ) : activeTab === 'fila' ? (

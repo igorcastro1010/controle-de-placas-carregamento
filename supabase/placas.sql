@@ -13,6 +13,7 @@ create table if not exists public.placas (
   placa_carreta text,
   entrega_local boolean default false,
   retorno_local boolean default false,
+  motorista_prioridade boolean not null default false,
   prioridade_local boolean default false,
   prioridade_motivo text,
   prioridade_por text,

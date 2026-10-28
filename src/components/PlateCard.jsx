@@ -78,6 +78,7 @@ function AuditInfo({ item }) {
 function VehicleSummary({ item }) {
   const badges = (
     <span className="local-badge-row">
+      {item.motorista_prioridade && <span className="local-badge">Motorista prioridade</span>}
       {item.entrega_local && <span className="local-badge">Entrega local</span>}
       {(item.retorno_local || item.prioridade_local) && <span className="local-badge priority">Prioridade local</span>}
     </span>

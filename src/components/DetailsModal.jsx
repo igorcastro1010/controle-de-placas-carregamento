@@ -55,10 +55,11 @@ function VehicleLine({ item }) {
 }
 
 function LocalBadges({ item }) {
-  if (!item?.entrega_local && !item?.prioridade_local && !item?.retorno_local) return null;
+  if (!item?.entrega_local && !item?.prioridade_local && !item?.retorno_local && !item?.motorista_prioridade) return null;
 
   return (
     <span className="local-badge-row">
+      {item.motorista_prioridade && <span className="local-badge">Motorista prioridade</span>}
       {item.entrega_local && <span className="local-badge">Entrega local</span>}
       {(item.prioridade_local || item.retorno_local) && <span className="local-badge priority">Prioridade local</span>}
     </span>

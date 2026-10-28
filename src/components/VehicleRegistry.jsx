@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import { fetchVeiculosMotoristas, formatBodyType, formatDateTime, matchesVehicleGroup } from '../services/placasService';
+import { fetchVeiculosMotoristas, formatBodyType, formatDateTime } from '../services/placasService';
 
 const emptyFilters = {
   placa: '',
@@ -60,9 +60,10 @@ function VehicleCard({ item }) {
   );
 }
 
-export default function VehicleRegistry() {
+export default function VehicleRegistry({ refreshSignal = 0 }) {
   const [filters, setFilters] = useState(emptyFilters);
   const [items, setItems] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
@@ -75,9 +76,13 @@ export default function VehicleRegistry() {
       setLoading(true);
       setError('');
       try {
-        const data = await fetchVeiculosMotoristas(filters);
-        if (active) setItems(data);
+        const result = await fetchVeiculosMotoristas({ ...filters, page, pageSize });
+        if (active) {
+          setItems(result.items);
+          setTotalItems(result.total);
+        }
       } catch (err) {
+        console.error('Erro ao carregar cadastro de veículos:', err);
         if (active) setError(err.message || 'Não foi possível carregar o cadastro de veículos.');
       } finally {
         if (active) setLoading(false);
@@ -89,26 +94,24 @@ export default function VehicleRegistry() {
     return () => {
       active = false;
     };
-  }, [filters]);
+  }, [filters, page, pageSize, refreshSignal]);
 
   useEffect(() => {
     if (window.matchMedia?.('(max-width: 768px)').matches) setPageSize(5);
   }, []);
 
-  const filteredItems = useMemo(() => items.filter((item) => matchesVehicleGroup(item, filters.vehicle_group)), [filters.vehicle_group, items]);
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  const currentPage = getSafePage(page, filteredItems.length, pageSize);
-  const pageStartIndex = (currentPage - 1) * pageSize;
-  const pageItems = filteredItems.slice(pageStartIndex, pageStartIndex + pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = getSafePage(page, totalItems, pageSize);
+  const pageItems = items;
 
   useEffect(() => {
     setPage(1);
   }, [filters.placa, filters.motorista, filters.vehicle_group, pageSize]);
 
   useEffect(() => {
-    const safePage = getSafePage(page, filteredItems.length, pageSize);
+    const safePage = getSafePage(page, totalItems, pageSize);
     if (page !== safePage) setPage(safePage);
-  }, [filteredItems.length, page, pageSize]);
+  }, [page, pageSize, totalItems]);
 
   const setFilter = (field, value) => setFilters((current) => ({ ...current, [field]: value }));
 
@@ -145,7 +148,7 @@ export default function VehicleRegistry() {
       {error && <div className="alert error">{error}</div>}
       {loading ? (
         <div className="empty-state">Carregando cadastro de veículos...</div>
-      ) : filteredItems.length ? (
+      ) : totalItems ? (
         <>
           <div className="vehicle-registry-list">
             {pageItems.map((item) => (
@@ -154,7 +157,7 @@ export default function VehicleRegistry() {
           </div>
           <div className="pagination-bar vehicle-pagination">
             <span>
-              Página {currentPage} de {totalPages} · {filteredItems.length} cadastro{filteredItems.length === 1 ? '' : 's'}
+              Página {currentPage} de {totalPages} · {totalItems} cadastro{totalItems === 1 ? '' : 's'}
             </span>
             <label className="pagination-size">
               Mostrar
