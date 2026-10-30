@@ -344,3 +344,23 @@ test('dashboard nao quebra JavaScript nem cria overflow horizontal', async ({ pa
   expect(errors).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('dashboard.png'), fullPage: true });
 });
+
+test('duplicidade verifica todas as paginas de registros ativos', async ({ page }) => {
+  await setup(page);
+  await page.route('https://priority-test.supabase.co/rest/v1/placas?**', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get('select') !== 'id,placa,placa_cavalo,placa_carreta,status') return route.fallback();
+    const offset = Number(url.searchParams.get('offset') || 0);
+    const rows = offset === 0
+      ? Array.from({ length: 500 }, (_, i) => seed({ id: `active-${i}`, placa: `XYZ${1000 + i}` }))
+      : [seed({ placa: 'ABC-1234' })];
+    return route.fulfill({ json: rows });
+  });
+  const error = await page.evaluate(async () => {
+    try {
+      await (await import('/src/services/placasService.js')).createPlaca({ placa: 'ABC1234', motorista: 'TESTE', telefone: '85999999999' }, { id: 'test', email: 'test@example.com' });
+      return '';
+    } catch (err) { return err.message; }
+  });
+  expect(error).toBe('Essa placa já está cadastrada na fila.');
+});

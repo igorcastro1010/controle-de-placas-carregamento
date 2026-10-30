@@ -293,10 +293,20 @@ async function ensurePlateIsNotDuplicated(payload, ignoreId = '') {
   const candidatePlates = (isCarreta ? [payload.placa, payload.placa_cavalo, payload.placa_carreta] : [payload.placa]).map(normalizePlate).filter(Boolean);
   if (!candidatePlates.length) return;
 
-  const { data, error } = await supabase.from('placas').select('id, placa, placa_cavalo, placa_carreta, status');
-  if (error) throw error;
+  const activeItems = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase.from('placas')
+      .select('id, placa, placa_cavalo, placa_carreta, status')
+      .not('status', 'in', inactiveStatusFilter())
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    activeItems.push(...(data || []));
+    if (!data || data.length < pageSize) break;
+  }
 
-  const hasDuplicate = (data || [])
+  const hasDuplicate = activeItems
     .filter((item) => item.id !== ignoreId && isActiveStatus(item.status))
     .some((item) => [item.placa, item.placa_cavalo, item.placa_carreta].map(normalizePlate).some((plate) => plate && candidatePlates.includes(plate)));
 
